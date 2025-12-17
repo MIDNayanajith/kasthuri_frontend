@@ -1,5 +1,5 @@
 // src/pages/Admin/Drivers/DriverList.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
 import { Plus, Users, Search, Car } from "lucide-react";
@@ -9,10 +9,11 @@ import { API_ENDPOINTS } from "../../../Utill/apiEndPoints";
 import toast from "react-hot-toast";
 import Modal from "../../../components/Admin/Modal";
 import DriverForm from "./DriverForm";
-
+import { AppContext } from "../../../context/AppContext";
 const DriverList = () => {
   useUser();
-
+  const { user } = useContext(AppContext);
+  const isAdmin = user?.role === "ADMIN";
   const [loading, setLoading] = useState(false);
   const [driverData, setDriverData] = useState([]);
   const [filteredDrivers, setFilteredDrivers] = useState([]);
@@ -20,11 +21,9 @@ const DriverList = () => {
   const [openAddDriverModal, setOpenAddDriverModal] = useState(false);
   const [openEditDriverModal, setOpenEditDriverModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
-
   const fetchDriverDetails = async () => {
     if (loading) return;
     setLoading(true);
-
     try {
       const response = await axiosConfig.get(API_ENDPOINTS.GET_ALL_DRIVERS);
       if (response.status === 200) {
@@ -37,11 +36,9 @@ const DriverList = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchDriverDetails();
   }, []);
-
   useEffect(() => {
     if (searchTerm) {
       const filtered = driverData.filter(
@@ -58,11 +55,9 @@ const DriverList = () => {
       setFilteredDrivers(driverData);
     }
   }, [searchTerm, driverData]);
-
   const handleAddDriver = async (driverData, isEditing = false) => {
     try {
       let response;
-
       if (isEditing && selectedDriver) {
         response = await axiosConfig.put(
           API_ENDPOINTS.UPDATE_DRIVER(selectedDriver.id),
@@ -71,7 +66,6 @@ const DriverList = () => {
       } else {
         response = await axiosConfig.post(API_ENDPOINTS.ADD_DRIVER, driverData);
       }
-
       if (response.status === 200 || response.status === 201) {
         toast.success(
           `Driver ${isEditing ? "updated" : "added"} successfully!`
@@ -89,12 +83,10 @@ const DriverList = () => {
       throw error; // Re-throw to be caught in the form
     }
   };
-
   const handleEditDriver = (driverToEdit) => {
     setSelectedDriver(driverToEdit);
     setOpenEditDriverModal(true);
   };
-
   const handleDeleteDriver = async (driverToDelete) => {
     if (
       !window.confirm(
@@ -102,7 +94,6 @@ const DriverList = () => {
       )
     )
       return;
-
     try {
       await axiosConfig.delete(API_ENDPOINTS.DELETE_DRIVER(driverToDelete.id));
       toast.success("Driver deleted successfully!");
@@ -111,7 +102,6 @@ const DriverList = () => {
       toast.error(error.response?.data?.message || "Failed to delete driver.");
     }
   };
-
   return (
     <Dashboard activeMenu="Drivers">
       <div className="my-5 mx-auto">
@@ -125,7 +115,6 @@ const DriverList = () => {
               Manage drivers and their information
             </p>
           </div>
-
           <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
             <div className="relative">
               <Search
@@ -140,7 +129,6 @@ const DriverList = () => {
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent w-full sm:w-64"
               />
             </div>
-
             <button
               onClick={() => setOpenAddDriverModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md"
@@ -150,14 +138,13 @@ const DriverList = () => {
             </button>
           </div>
         </div>
-
         <DriversTable
           drivers={filteredDrivers}
           onEditDriver={handleEditDriver}
           onDeleteDriver={handleDeleteDriver}
           loading={loading}
+          isAdmin={isAdmin}
         />
-
         {/* Add Driver Modal */}
         <Modal
           isOpen={openAddDriverModal}
@@ -166,7 +153,6 @@ const DriverList = () => {
         >
           <DriverForm onAddDriver={handleAddDriver} />
         </Modal>
-
         {/* Edit Driver Modal */}
         <Modal
           isOpen={openEditDriverModal}
@@ -186,5 +172,4 @@ const DriverList = () => {
     </Dashboard>
   );
 };
-
 export default DriverList;

@@ -10,12 +10,10 @@ import {
   Wrench,
   UserCog,
 } from "lucide-react";
-
 export const assets = {
   hero,
   logo,
 };
-
 export const SIDE_BAR_DATA = [
   {
     id: "01",
@@ -39,7 +37,10 @@ export const SIDE_BAR_DATA = [
     id: "04",
     label: "Vehicles",
     icon: Truck,
-    path: "/vehicles",
+    children: [
+      { label: "Own Vehicles", path: "/ownvehicles" },
+      { label: "Ex Vehicles", path: "/exvehicles" },
+    ],
   },
   {
     id: "05",

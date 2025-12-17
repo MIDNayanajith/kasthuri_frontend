@@ -7,9 +7,10 @@ import AdminHome from "./pages/Admin/AdminHome";
 import UserList from "./pages/Admin/Users/UserList";
 import MaintenanceList from "./pages/Admin/Maintenance/MaintenanceList";
 import AttendanceList from "./pages/Admin/Attendance/AttendanceList";
-import VehiclesList from "./pages/Admin/Vehicles/VehiclesList";
 import TransportList from "./pages/Admin/Transport/TransportList";
 import DriversList from "./pages/Admin/Drivers/DriversList";
+import OwnVehiclesList from "./pages/Admin/OwnVehicles/OwnVehiclesList";
+import ExVehiclesList from "./pages/Admin/ExVehicles/ExVehiclesList";
 
 const App = () => {
   return (
@@ -24,7 +25,8 @@ const App = () => {
             <Route path="/users" element={<UserList />} />
             <Route path="/maintenance" element={<MaintenanceList />} />
             <Route path="/attendance" element={<AttendanceList />} />
-            <Route path="/vehicles" element={<VehiclesList />} />
+            <Route path="/ownvehicles" element={<OwnVehiclesList />} />
+            <Route path="/exvehicles" element={<ExVehiclesList />} />
             <Route path="/transports" element={<TransportList />} />
             <Route path="/drivers" element={<DriversList />} />
             {/* Add more routes here for admin dashboard, etc. */}

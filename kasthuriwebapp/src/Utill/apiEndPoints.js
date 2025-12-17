@@ -14,5 +14,24 @@ export const API_ENDPOINTS = {
   UPDATE_DRIVER: (id) => `/drivers/${id}`,
   DELETE_DRIVER: (id) => `/drivers/${id}`,
 
+  // Own Vehicles endpoints
+  GET_ALL_OWN_VEHICLES: "/own-vehicles",
+  ADD_OWN_VEHICLE: "/own-vehicles",
+  UPDATE_OWN_VEHICLE: (id) => `/own-vehicles/${id}`,
+  DELETE_OWN_VEHICLE: (id) => `/own-vehicles/${id}`,
+
+  // Ex Vehicles endpoints
+  GET_ALL_EX_VEHICLES: "/ex-vehicles",
+  ADD_EX_VEHICLE: "/ex-vehicles",
+  UPDATE_EX_VEHICLE: (id) => `/ex-vehicles/${id}`,
+  DELETE_EX_VEHICLE: (id) => `/ex-vehicles/${id}`,
+
+  // Maintenance endpoints
+  GET_ALL_MAINTENANCE: "/maintenance",
+  ADD_MAINTENANCE: "/maintenance",
+  UPDATE_MAINTENANCE: (id) => `/maintenance/${id}`,
+  DELETE_MAINTENANCE: (id) => `/maintenance/${id}`,
+  DOWNLOAD_MAINTENANCE_EXCEL: "/excel/download/maintenance",
+
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
 };
