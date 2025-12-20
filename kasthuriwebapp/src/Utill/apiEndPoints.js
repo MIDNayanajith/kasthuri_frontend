@@ -33,5 +33,17 @@ export const API_ENDPOINTS = {
   DELETE_MAINTENANCE: (id) => `/maintenance/${id}`,
   DOWNLOAD_MAINTENANCE_EXCEL: "/excel/download/maintenance",
 
+  // Transport endpoints
+  GET_ALL_TRANSPORTS: "/transports",
+  ADD_TRANSPORT: "/transports",
+  UPDATE_TRANSPORT: (id) => `/transports/${id}`,
+  DELETE_TRANSPORT: (id) => `/transports/${id}`,
+  DOWNLOAD_TRANSPORT_EXCEL: "/excel/download/transport",
+
+  // New Invoice endpoints
+  CREATE_INVOICE: "/invoices",
+  GET_INVOICE: (id) => `/invoices/${id}`,
+  DOWNLOAD_INVOICE_PDF: (id) => `/invoices/${id}/pdf`,
+
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
 };
