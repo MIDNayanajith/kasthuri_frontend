@@ -1,3 +1,4 @@
+// assets.js
 import hero from "./hero.png";
 import logo from "./logo.jpeg";
 import {
@@ -46,7 +47,7 @@ export const SIDE_BAR_DATA = [
     id: "05",
     label: "Finance",
     icon: DollarSign,
-    path: "/finance",
+    children: [{ label: "Invoice", path: "/invoice" }],
   },
   {
     id: "06",

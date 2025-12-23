@@ -1,4 +1,4 @@
-// Updated TransportTable.jsx - Fixed horizontal overflow issue
+// Updated TransportTable.jsx with scrollbar
 import React from "react";
 import {
   Edit2,
@@ -87,226 +87,239 @@ const TransportTable = ({
 
   const allSelected =
     transportRecords.length > 0 &&
-    selectedIds.length === transportRecords.length;
+    transportRecords.every((record) => selectedIds.includes(record.id));
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       {/* Desktop Table */}
-      <div className="hidden lg:block overflow-x-auto">
-        <table className="w-full min-w-max">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-10">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={(e) => onSelectAll(e.target.checked)}
-                  className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
-                />
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px]">
-                Client
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">
-                Route
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">
-                Dates
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">
-                Vehicle
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">
-                Amounts
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">
-                Invoice Status
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {transportRecords.length === 0 ? (
+      <div className="hidden lg:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
               <tr>
-                <td colSpan="9" className="px-6 py-8 text-center text-gray-500">
-                  <Truck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-lg font-medium text-gray-400">
-                    No transport records found
-                  </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    Get started by adding your first transport record
-                  </p>
-                </td>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-10 bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(e) => onSelectAll(e.target.checked)}
+                    className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
+                  />
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px] bg-gray-50">
+                  Client
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                  Route
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                  Dates
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                  Vehicle
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                  Amounts
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                  Invoice Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              transportRecords.map((record) => {
-                const isSelected = selectedIds.includes(record.id);
-                return (
-                  <tr
-                    key={record.id}
-                    className={`hover:bg-gray-50 transition-colors duration-150 ${
-                      isSelected ? "bg-blue-50" : ""
-                    }`}
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200 max-h-[500px] overflow-y-auto">
+              {transportRecords.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="9"
+                    className="px-6 py-8 text-center text-gray-500"
                   >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) =>
-                          onSelectChange(record.id, e.target.checked)
-                        }
-                        className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
-                        disabled={record.invoiceStatus !== "Not Invoiced"}
-                      />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div className="truncate max-w-[140px]">
-                          {record.clientName}
-                          {record.description && (
-                            <span className="block text-gray-500 text-xs truncate">
-                              {record.description}
+                    <Truck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-lg font-medium text-gray-400">
+                      No transport records found
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      Get started by adding your first transport record
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                transportRecords.map((record) => {
+                  const isSelected = selectedIds.includes(record.id);
+                  return (
+                    <tr
+                      key={record.id}
+                      className={`hover:bg-gray-50 transition-colors duration-150 ${
+                        isSelected ? "bg-blue-50" : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) =>
+                            onSelectChange(record.id, e.target.checked)
+                          }
+                          className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
+                          disabled={
+                            record.invoiceStatus &&
+                            record.invoiceStatus !== "Not Invoiced"
+                          }
+                        />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <div className="truncate max-w-[140px]">
+                            {record.clientName}
+                            {record.description && (
+                              <span className="block text-gray-500 text-xs truncate">
+                                {record.description}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <div className="max-w-[110px]">
+                            <div className="truncate">
+                              {record.startingPoint} →
+                            </div>
+                            <div className="truncate text-gray-700">
+                              {record.destination}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">
+                              {record.loadingDate
+                                ? new Date(
+                                    record.loadingDate
+                                  ).toLocaleDateString()
+                                : "N/A"}
                             </span>
+                          </div>
+                          {record.unloadingDate && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Unload:{" "}
+                              {new Date(
+                                record.unloadingDate
+                              ).toLocaleDateString()}
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div className="truncate max-w-[110px]">
-                          {record.startingPoint} → {record.destination}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                          <span className="truncate">
-                            {record.loadingDate
-                              ? new Date(
-                                  record.loadingDate
-                                ).toLocaleDateString()
-                              : "N/A"}
-                          </span>
-                        </div>
-                        {record.unloadingDate && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Unload:{" "}
-                            {new Date(
-                              record.unloadingDate
-                            ).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <Truck className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                          <span className="truncate max-w-[90px]">
-                            {record.vehicleRegNumber}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {record.vehicleType}
-                          {record.driverName !== "N/A" && (
-                            <span className="block truncate">
-                              Driver: {record.driverName}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <Truck className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                            <span className="truncate max-w-[90px]">
+                              {record.vehicleRegNumber}
                             </span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {record.vehicleType}
+                            {record.driverName !== "N/A" && (
+                              <span className="block truncate">
+                                Driver: {record.driverName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <DollarSign className="w-4 h-4 mr-1 text-gray-400" />
+                            <span className="font-medium">
+                              {record.agreedAmount || "0"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1 space-y-1">
+                            <div className="flex justify-between">
+                              <span>Adv:</span>
+                              <span>{record.advanceReceived || "0"}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Bal:</span>
+                              <span>{record.balanceReceived || "0"}</span>
+                            </div>
+                            <div className="flex justify-between text-red-600">
+                              <span>Held:</span>
+                              <span>{record.heldUp || "0"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center gap-1">
+                            {getTripStatusIcon(record.tripStatus)}
+                            <span className="truncate">
+                              {getTripStatusLabel(record.tripStatus)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600 mt-1">
+                            {getPaymentStatusLabel(record.paymentStatus)}
+                          </div>
+                          {record.distanceKm && (
+                            <div className="text-xs text-gray-500 mt-1 flex items-center">
+                              <Ruler className="w-3 h-3 mr-1" />
+                              {record.distanceKm} km
+                            </div>
                           )}
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1 text-gray-400" />
-                          <span className="font-medium">
-                            {record.agreedAmount || "0"}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-600 mt-1 space-y-1">
-                          <div className="flex justify-between">
-                            <span>Adv:</span>
-                            <span>{record.advanceReceived || "0"}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Bal:</span>
-                            <span>{record.balanceReceived || "0"}</span>
-                          </div>
-                          <div className="flex justify-between text-red-600">
-                            <span>Held:</span>
-                            <span>{record.heldUp || "0"}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-900">
+                          <FileText className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <div className="truncate max-w-[110px]">
+                            {record.invoiceStatus || "Not Invoiced"}
+                            {record.invoiceId && (
+                              <span className="block text-gray-500 text-xs">
+                                ID: {record.invoiceId}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center gap-1">
-                          {getTripStatusIcon(record.tripStatus)}
-                          <span className="truncate">
-                            {getTripStatusLabel(record.tripStatus)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          {getPaymentStatusLabel(record.paymentStatus)}
-                        </div>
-                        {record.distanceKm && (
-                          <div className="text-xs text-gray-500 mt-1 flex items-center">
-                            <Ruler className="w-3 h-3 mr-1" />
-                            {record.distanceKm} km
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <FileText className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                        <div className="truncate max-w-[110px]">
-                          {record.invoiceStatus || "Not Invoiced"}
-                          {record.invoiceId && (
-                            <span className="block text-gray-500 text-xs">
-                              ID: {record.invoiceId}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => onEditTransport(record)}
-                          className="inline-flex items-center px-2 py-1 border border-[#A594F9] text-[#A594F9] rounded text-sm hover:bg-[#F5EFFF] transition-colors duration-200 cursor-pointer whitespace-nowrap"
-                        >
-                          <Edit2 size={14} className="mr-1" />
-                          Edit
-                        </button>
-                        {isAdmin && (
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => onDeleteTransport(record)}
-                            className="inline-flex items-center px-2 py-1 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50 transition-colors duration-200 cursor-pointer whitespace-nowrap"
+                            onClick={() => onEditTransport(record)}
+                            className="inline-flex items-center px-2 py-1 border border-[#A594F9] text-[#A594F9] rounded text-sm hover:bg-[#F5EFFF] transition-colors duration-200 cursor-pointer whitespace-nowrap"
                           >
-                            <Trash2 size={14} className="mr-1" />
-                            Delete
+                            <Edit2 size={14} className="mr-1" />
+                            Edit
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                          {isAdmin && (
+                            <button
+                              onClick={() => onDeleteTransport(record)}
+                              className="inline-flex items-center px-2 py-1 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50 transition-colors duration-200 cursor-pointer whitespace-nowrap"
+                            >
+                              <Trash2 size={14} className="mr-1" />
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Mobile Card View */}
@@ -322,7 +335,7 @@ const TransportTable = ({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 max-h-[500px] overflow-y-auto">
             {transportRecords.map((record) => {
               const isSelected = selectedIds.includes(record.id);
               const isExpanded = expandedRows[record.id];
@@ -343,7 +356,10 @@ const TransportTable = ({
                           onSelectChange(record.id, e.target.checked)
                         }
                         className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5] mt-1"
-                        disabled={record.invoiceStatus !== "Not Invoiced"}
+                        disabled={
+                          record.invoiceStatus &&
+                          record.invoiceStatus !== "Not Invoiced"
+                        }
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center">
@@ -352,17 +368,24 @@ const TransportTable = ({
                             {record.clientName}
                           </h4>
                         </div>
-                        <div className="mt-1 flex items-center text-sm text-gray-500">
-                          <Truck className="w-3 h-3 mr-1" />
-                          <span className="truncate">
-                            {record.vehicleRegNumber} ({record.vehicleType})
-                          </span>
-                        </div>
-                        <div className="mt-1 flex items-center text-sm text-gray-500">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          <span className="truncate">
-                            {record.startingPoint} → {record.destination}
-                          </span>
+                        <div className="mt-1 text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Truck className="w-3 h-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">
+                              {record.vehicleRegNumber} ({record.vehicleType})
+                            </span>
+                          </div>
+                          <div className="mt-1">
+                            <div className="flex items-center">
+                              <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <div className="truncate">
+                                {record.startingPoint} →
+                              </div>
+                            </div>
+                            <div className="truncate pl-4">
+                              {record.destination}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

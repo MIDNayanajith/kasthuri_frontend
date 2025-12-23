@@ -41,8 +41,11 @@ export const API_ENDPOINTS = {
   DOWNLOAD_TRANSPORT_EXCEL: "/excel/download/transport",
 
   // New Invoice endpoints
+  GET_ALL_INVOICES: "/invoices",
   CREATE_INVOICE: "/invoices",
   GET_INVOICE: (id) => `/invoices/${id}`,
+  UPDATE_INVOICE: (id) => `/invoices/${id}`,
+  DELETE_INVOICE: (id) => `/invoices/${id}`,
   DOWNLOAD_INVOICE_PDF: (id) => `/invoices/${id}/pdf`,
 
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,

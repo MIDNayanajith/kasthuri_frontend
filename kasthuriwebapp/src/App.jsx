@@ -11,6 +11,7 @@ import TransportList from "./pages/Admin/Transport/TransportList";
 import DriversList from "./pages/Admin/Drivers/DriversList";
 import OwnVehiclesList from "./pages/Admin/OwnVehicles/OwnVehiclesList";
 import ExVehiclesList from "./pages/Admin/ExVehicles/ExVehiclesList";
+import InvoiceList from "./pages/Admin/Finance/Invoice/InvoiceList";
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
             <Route path="/attendance" element={<AttendanceList />} />
             <Route path="/ownvehicles" element={<OwnVehiclesList />} />
             <Route path="/exvehicles" element={<ExVehiclesList />} />
+            <Route path="/invoice" element={<InvoiceList />} />
             <Route path="/transports" element={<TransportList />} />
             <Route path="/drivers" element={<DriversList />} />
             {/* Add more routes here for admin dashboard, etc. */}

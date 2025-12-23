@@ -1,4 +1,4 @@
-// Updated TransportList.jsx (add selection, generate invoice button, and handling)
+// Updated TransportList.jsx with pagination and scrollbar
 import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
@@ -12,6 +12,8 @@ import {
   Calendar,
   MapPin,
   FileText,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import TransportTable from "./TransportTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -20,6 +22,7 @@ import toast from "react-hot-toast";
 import Modal from "../../../components/Admin/Modal";
 import TransportForm from "./TransportForm";
 import { AppContext } from "../../../context/AppContext";
+
 const TransportList = () => {
   useUser();
   const { user } = useContext(AppContext);
@@ -37,7 +40,12 @@ const TransportList = () => {
   const [openAddTransportModal, setOpenAddTransportModal] = useState(false);
   const [openEditTransportModal, setOpenEditTransportModal] = useState(false);
   const [selectedTransport, setSelectedTransport] = useState(null);
-  const [selectedTransportIds, setSelectedTransportIds] = useState([]); // New: for multi-select
+  const [selectedTransportIds, setSelectedTransportIds] = useState([]);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
   const fetchTransportDetails = async (
     ownVehicleId = null,
     externalVehicleId = null,
@@ -80,6 +88,8 @@ const TransportList = () => {
         }));
         setTransportData(transportWithDetails);
         setFilteredTransport(transportWithDetails);
+        // Reset to first page when data changes
+        setCurrentPage(1);
       }
       if (ownVehiclesResponse.status === 200) {
         setOwnVehicleData(ownVehiclesResponse.data);
@@ -96,9 +106,11 @@ const TransportList = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchTransportDetails();
   }, []);
+
   useEffect(() => {
     if (searchTerm) {
       const filtered = transportData.filter(
@@ -117,10 +129,39 @@ const TransportList = () => {
             .includes(searchTerm.toLowerCase())
       );
       setFilteredTransport(filtered);
+      // Reset to first page when search changes
+      setCurrentPage(1);
     } else {
       setFilteredTransport(transportData);
     }
   }, [searchTerm, transportData]);
+
+  // Calculate pagination values
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredTransport.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+  const totalPages = Math.ceil(filteredTransport.length / itemsPerPage);
+
+  // Pagination handlers
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
   const handleApplyFilter = () => {
     let ownVehicleId = null;
     let externalVehicleId = null;
@@ -135,12 +176,14 @@ const TransportList = () => {
     }
     fetchTransportDetails(ownVehicleId, externalVehicleId, filterMonth);
   };
+
   const handleResetFilter = () => {
     setFilterVehicleId("");
     setFilterMonth("");
     setSearchTerm("");
     fetchTransportDetails();
   };
+
   const handleDownloadExcel = async () => {
     try {
       const params = {};
@@ -188,6 +231,7 @@ const TransportList = () => {
       console.error("Download error:", error);
     }
   };
+
   const handleAddTransport = async (transportData, isEditing = false) => {
     try {
       let response;
@@ -219,10 +263,12 @@ const TransportList = () => {
       throw error;
     }
   };
+
   const handleEditTransport = (transportToEdit) => {
     setSelectedTransport(transportToEdit);
     setOpenEditTransportModal(true);
   };
+
   const handleDeleteTransport = async (transportToDelete) => {
     if (
       !window.confirm(
@@ -242,7 +288,7 @@ const TransportList = () => {
       );
     }
   };
-  // New: Handle selection change
+
   const handleSelectTransport = (id, isSelected) => {
     if (isSelected) {
       setSelectedTransportIds((prev) => [...prev, id]);
@@ -250,18 +296,30 @@ const TransportList = () => {
       setSelectedTransportIds((prev) => prev.filter((tid) => tid !== id));
     }
   };
-  // New: Handle select all
+
   const handleSelectAll = (isSelected) => {
     if (isSelected) {
-      setSelectedTransportIds(filteredTransport.map((t) => t.id));
+      setSelectedTransportIds(
+        currentItems
+          .filter((t) => !t.invoiceStatus || t.invoiceStatus === "Not Invoiced")
+          .map((t) => t.id)
+      );
     } else {
       setSelectedTransportIds([]);
     }
   };
-  // New: Generate invoice
+
   const handleGenerateInvoice = async () => {
     if (selectedTransportIds.length === 0) {
       toast.error("Please select at least one transport to invoice.");
+      return;
+    }
+    const selectedTransports = filteredTransport.filter((t) =>
+      selectedTransportIds.includes(t.id)
+    );
+    const clientNames = new Set(selectedTransports.map((t) => t.clientName));
+    if (clientNames.size > 1) {
+      toast.error("All selected transports must have the same client name");
       return;
     }
     if (
@@ -275,7 +333,7 @@ const TransportList = () => {
       setLoading(true);
       const request = {
         transportIds: selectedTransportIds,
-        createdByUserId: user.id, // Assume user has id
+        createdByUserId: user.id,
       };
       const response = await axiosConfig.post(
         API_ENDPOINTS.CREATE_INVOICE,
@@ -284,7 +342,6 @@ const TransportList = () => {
       if (response.status === 200) {
         const invoice = response.data;
         toast.success(`Invoice ${invoice.invoiceNo} generated successfully!`);
-        // Download PDF
         const pdfResponse = await axiosConfig.get(
           API_ENDPOINTS.DOWNLOAD_INVOICE_PDF(invoice.id),
           {
@@ -298,7 +355,6 @@ const TransportList = () => {
         document.body.appendChild(link);
         link.click();
         link.remove();
-        // Refresh list
         fetchTransportDetails();
         setSelectedTransportIds([]);
       }
@@ -310,11 +366,37 @@ const TransportList = () => {
       setLoading(false);
     }
   };
-  // Combined vehicles for filter
+
   const allVehicles = [
     ...ownVehicleData.map((v) => ({ ...v, type: "Own" })),
     ...exVehicleData.map((v) => ({ ...v, type: "External" })),
   ];
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+      if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+    }
+
+    return pageNumbers;
+  };
+
   return (
     <Dashboard activeMenu="Transport">
       <div className="my-5 mx-auto">
@@ -344,6 +426,7 @@ const TransportList = () => {
             </button>
           </div>
         </div>
+
         {/* Search Bar */}
         <div className="relative mb-6">
           <Search
@@ -358,6 +441,7 @@ const TransportList = () => {
             className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
+
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -480,10 +564,10 @@ const TransportList = () => {
             )}
           </div>
         )}
+
         {/* Stats Summary */}
         {filteredTransport.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {/* Total Records Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -497,7 +581,6 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
-            {/* Total Agreed Amount Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -517,7 +600,6 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
-            {/* Total Received Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -539,7 +621,6 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
-            {/* Total Held Up Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -560,17 +641,24 @@ const TransportList = () => {
             </div>
           </div>
         )}
+
         {/* Quick Actions Bar */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>
             <p className="text-sm text-gray-600">
               Showing{" "}
+              <span className="font-semibold">{currentItems.length}</span> of{" "}
               <span className="font-semibold">{filteredTransport.length}</span>{" "}
-              transport records
+              records
               {(filterVehicleId || filterMonth) && (
                 <span className="text-[#4F46E5] ml-2">(Filtered)</span>
               )}
             </p>
+            {filteredTransport.length > itemsPerPage && (
+              <p className="text-xs text-gray-500 mt-1">
+                Page {currentPage} of {totalPages}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {!showFilters && (
@@ -582,7 +670,6 @@ const TransportList = () => {
                 <span className="hidden sm:inline">Download Excel</span>
               </button>
             )}
-            {/* New: Generate Invoice Button */}
             <button
               onClick={handleGenerateInvoice}
               disabled={selectedTransportIds.length === 0 || loading}
@@ -595,17 +682,70 @@ const TransportList = () => {
             </button>
           </div>
         </div>
+
         {/* Transport Table */}
-        <TransportTable
-          transportRecords={filteredTransport}
-          onEditTransport={handleEditTransport}
-          onDeleteTransport={handleDeleteTransport}
-          loading={loading}
-          isAdmin={isAdmin}
-          selectedIds={selectedTransportIds} // New prop
-          onSelectChange={handleSelectTransport} // New prop
-          onSelectAll={handleSelectAll} // New prop
-        />
+        <div className="relative">
+          <TransportTable
+            transportRecords={currentItems}
+            onEditTransport={handleEditTransport}
+            onDeleteTransport={handleDeleteTransport}
+            loading={loading}
+            isAdmin={isAdmin}
+            selectedIds={selectedTransportIds}
+            onSelectChange={handleSelectTransport}
+            onSelectAll={handleSelectAll}
+          />
+        </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
+            <div className="text-sm text-gray-600">
+              Showing {indexOfFirstItem + 1} to{" "}
+              {Math.min(indexOfLastItem, filteredTransport.length)} of{" "}
+              {filteredTransport.length} entries
+            </div>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                aria-label="Previous page"
+              >
+                <ChevronLeft size={16} />
+              </button>
+
+              {getPageNumbers().map((page) => (
+                <button
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`flex items-center justify-center w-9 h-9 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                    currentPage === page
+                      ? "bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white shadow-sm"
+                      : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                aria-label="Next page"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            <div className="flex items-center text-sm text-gray-600">
+              <span>Items per page:</span>
+              <span className="ml-2 font-medium">{itemsPerPage}</span>
+            </div>
+          </div>
+        )}
+
         {/* Add Transport Modal */}
         <Modal
           isOpen={openAddTransportModal}
@@ -619,6 +759,7 @@ const TransportList = () => {
             drivers={driverData}
           />
         </Modal>
+
         {/* Edit Transport Modal */}
         <Modal
           isOpen={openEditTransportModal}
@@ -641,4 +782,5 @@ const TransportList = () => {
     </Dashboard>
   );
 };
+
 export default TransportList;
