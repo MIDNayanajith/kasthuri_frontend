@@ -1,43 +1,43 @@
-// AttendanceList.jsx
+// PaymentsList.jsx
 import React, { useEffect, useState } from "react";
-import Dashboard from "../../../components/Admin/Dashboard";
-import { useUser } from "../../../hooks/useUser";
+import Dashboard from "../../../../components/Admin/Dashboard";
+import { useUser } from "../../../../hooks/useUser";
 import {
   Plus,
   Search,
-  CalendarCheck,
+  DollarSign,
   Download,
   Filter,
   RotateCcw,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import AttendanceTable from "./AttendanceTable";
-import axiosConfig from "../../../Utill/axiosConfig";
-import { API_ENDPOINTS } from "../../../Utill/apiEndPoints";
+import PaymentsTable from "./PaymentsTable";
+import axiosConfig from "../../../../Utill/axiosConfig";
+import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
 import toast from "react-hot-toast";
-import Modal from "../../../components/Admin/Modal";
-import AttendanceForm from "./AttendanceForm";
+import Modal from "../../../../components/Admin/Modal";
+import PaymentForm from "./PaymentForm";
 
-const AttendanceList = () => {
+const PaymentsList = () => {
   useUser();
   const [loading, setLoading] = useState(false);
-  const [attendanceData, setAttendanceData] = useState([]);
+  const [paymentsData, setPaymentsData] = useState([]);
   const [driverData, setDriverData] = useState([]);
   const [userData, setUserData] = useState([]);
-  const [filteredAttendance, setFilteredAttendance] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRecipientType, setFilterRecipientType] = useState("");
   const [filterRecipientId, setFilterRecipientId] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [openAddAttendanceModal, setOpenAddAttendanceModal] = useState(false);
-  const [openEditAttendanceModal, setOpenEditAttendanceModal] = useState(false);
-  const [selectedAttendance, setSelectedAttendance] = useState(null);
+  const [openAddPaymentModal, setOpenAddPaymentModal] = useState(false);
+  const [openEditPaymentModal, setOpenEditPaymentModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  const fetchAttendanceDetails = async (
+  const fetchPaymentsDetails = async (
     recipientType = null,
     recipientId = null,
     month = null
@@ -49,38 +49,24 @@ const AttendanceList = () => {
       if (recipientType) params.recipientType = recipientType;
       if (recipientId) params.recipientId = recipientId;
       if (month) params.month = month;
-
-      const [attendanceResponse, driversResponse, usersResponse] =
+      const [paymentsResponse, driversResponse, usersResponse] =
         await Promise.all([
-          axiosConfig.get(API_ENDPOINTS.GET_ALL_ATTENDANCE, { params }),
+          axiosConfig.get(API_ENDPOINTS.GET_ALL_PAYMENTS, { params }),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_DRIVERS),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_USERS),
         ]);
-
-      if (attendanceResponse.status === 200) {
-        const attendanceWithDetails = attendanceResponse.data.map((a) => {
-          const recipientName =
-            a.recipientType === "Driver"
-              ? driversResponse.data.find((d) => d.id === a.recipientId)
+      if (paymentsResponse.status === 200) {
+        const paymentsWithDetails = paymentsResponse.data.map((p) => ({
+          ...p,
+          recipientName:
+            p.recipientType === "Driver"
+              ? driversResponse.data.find((d) => d.id === p.recipientId)
                   ?.name || "Unknown"
-              : usersResponse.data.find((u) => u.id === a.recipientId)
-                  ?.username || "Unknown";
-
-          let totalHours = 0;
-          if (a.checkInTime && a.checkOutTime && a.status === "Present") {
-            const inTime = new Date(a.checkInTime);
-            const outTime = new Date(a.checkOutTime);
-            totalHours = ((outTime - inTime) / (1000 * 60 * 60)).toFixed(2);
-          }
-
-          return {
-            ...a,
-            recipientName,
-            totalHours,
-          };
-        });
-        setAttendanceData(attendanceWithDetails);
-        setFilteredAttendance(attendanceWithDetails);
+              : usersResponse.data.find((u) => u.id === p.recipientId)
+                  ?.username || "Unknown",
+        }));
+        setPaymentsData(paymentsWithDetails);
+        setFilteredPayments(paymentsWithDetails);
         setCurrentPage(1);
       }
       if (driversResponse.status === 200) {
@@ -97,32 +83,32 @@ const AttendanceList = () => {
   };
 
   useEffect(() => {
-    fetchAttendanceDetails();
+    fetchPaymentsDetails();
   }, []);
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = attendanceData.filter(
-        (attendance) =>
-          attendance.recipientName
+      const filtered = paymentsData.filter(
+        (payment) =>
+          payment.recipientName
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          attendance.status?.toLowerCase().includes(searchTerm.toLowerCase())
+          payment.status?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredAttendance(filtered);
+      setFilteredPayments(filtered);
       setCurrentPage(1);
     } else {
-      setFilteredAttendance(attendanceData);
+      setFilteredPayments(paymentsData);
     }
-  }, [searchTerm, attendanceData]);
+  }, [searchTerm, paymentsData]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredAttendance.slice(
+  const currentItems = filteredPayments.slice(
     indexOfFirstItem,
     indexOfLastItem
   );
-  const totalPages = Math.ceil(filteredAttendance.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -141,7 +127,7 @@ const AttendanceList = () => {
   };
 
   const handleApplyFilter = () => {
-    fetchAttendanceDetails(
+    fetchPaymentsDetails(
       filterRecipientType,
       filterRecipientId ? parseInt(filterRecipientId) : null,
       filterMonth
@@ -153,7 +139,7 @@ const AttendanceList = () => {
     setFilterRecipientId("");
     setFilterMonth("");
     setSearchTerm("");
-    fetchAttendanceDetails();
+    fetchPaymentsDetails();
   };
 
   const handleDownloadExcel = async () => {
@@ -162,19 +148,17 @@ const AttendanceList = () => {
       if (filterRecipientType) params.recipientType = filterRecipientType;
       if (filterRecipientId) params.recipientId = filterRecipientId;
       if (filterMonth) params.month = filterMonth;
-
       const response = await axiosConfig.get(
-        API_ENDPOINTS.DOWNLOAD_ATTENDANCE_EXCEL,
+        API_ENDPOINTS.DOWNLOAD_PAYMENTS_EXCEL,
         {
           params,
           responseType: "blob",
         }
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      let filename = "attendance_report.xlsx";
+      let filename = "payments_report.xlsx";
       link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
@@ -185,28 +169,28 @@ const AttendanceList = () => {
     }
   };
 
-  const handleAddAttendance = async (attendanceData, isEditing = false) => {
+  const handleAddPayment = async (paymentData, isEditing = false) => {
     try {
       let response;
-      if (isEditing && selectedAttendance) {
+      if (isEditing && selectedPayment) {
         response = await axiosConfig.put(
-          API_ENDPOINTS.UPDATE_ATTENDANCE(selectedAttendance.id),
-          attendanceData
+          API_ENDPOINTS.UPDATE_PAYMENT(selectedPayment.id),
+          paymentData
         );
       } else {
         response = await axiosConfig.post(
-          API_ENDPOINTS.ADD_ATTENDANCE,
-          attendanceData
+          API_ENDPOINTS.ADD_PAYMENT,
+          paymentData
         );
       }
       if (response.status === 200 || response.status === 201) {
         toast.success(
-          `Attendance record ${isEditing ? "updated" : "added"} successfully!`
+          `Payment record ${isEditing ? "updated" : "added"} successfully!`
         );
-        setOpenAddAttendanceModal(false);
-        setOpenEditAttendanceModal(false);
-        setSelectedAttendance(null);
-        fetchAttendanceDetails(
+        setOpenAddPaymentModal(false);
+        setOpenEditPaymentModal(false);
+        setSelectedPayment(null);
+        fetchPaymentsDetails(
           filterRecipientType,
           filterRecipientId,
           filterMonth
@@ -215,35 +199,29 @@ const AttendanceList = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          `Failed to ${isEditing ? "update" : "add"} attendance record!`
+          `Failed to ${isEditing ? "update" : "add"} payment record!`
       );
       throw error;
     }
   };
 
-  const handleEditAttendance = (attendanceToEdit) => {
-    setSelectedAttendance(attendanceToEdit);
-    setOpenEditAttendanceModal(true);
+  const handleEditPayment = (paymentToEdit) => {
+    setSelectedPayment(paymentToEdit);
+    setOpenEditPaymentModal(true);
   };
 
-  const handleDeleteAttendance = async (attendanceToDelete) => {
-    if (
-      !window.confirm(`Delete attendance record? This action cannot be undone.`)
-    )
+  const handleDeletePayment = async (paymentToDelete) => {
+    if (!window.confirm(`Delete payment record? This action cannot be undone.`))
       return;
     try {
       await axiosConfig.delete(
-        API_ENDPOINTS.DELETE_ATTENDANCE(attendanceToDelete.id)
+        API_ENDPOINTS.DELETE_PAYMENT(paymentToDelete.id)
       );
-      toast.success("Attendance record deleted successfully!");
-      fetchAttendanceDetails(
-        filterRecipientType,
-        filterRecipientId,
-        filterMonth
-      );
+      toast.success("Payment record deleted successfully!");
+      fetchPaymentsDetails(filterRecipientType, filterRecipientId, filterMonth);
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Failed to delete attendance record."
+        error.response?.data?.message || "Failed to delete payment record."
       );
     }
   };
@@ -272,26 +250,27 @@ const AttendanceList = () => {
     filterRecipientType === "Driver"
       ? driverData.map((d) => ({ value: d.id, label: d.name }))
       : userData.map((u) => ({ value: u.id, label: u.username }));
+
   recipientOptions.unshift({ value: "", label: "All Recipients" });
 
   return (
-    <Dashboard activeMenu="Attendance">
+    <Dashboard activeMenu="Finance">
       <div className="my-5 mx-auto">
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <CalendarCheck className="text-[#4F46E5]" size={28} />
-              Attendance Management
+              <DollarSign className="text-[#4F46E5]" size={28} />
+              Payments Management
             </h2>
-            <p className="text-gray-600 mt-1">Manage attendance records</p>
+            <p className="text-gray-600 mt-1">Manage payment records</p>
           </div>
           <div className="flex gap-3 w-full lg:w-auto">
             <button
-              onClick={() => setOpenAddAttendanceModal(true)}
+              onClick={() => setOpenAddPaymentModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md flex-1 lg:flex-none justify-center"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">Add Attendance</span>
+              <span className="hidden sm:inline">Add Payment</span>
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -396,23 +375,23 @@ const AttendanceList = () => {
             <p className="text-sm text-gray-600">
               Showing{" "}
               <span className="font-semibold">{currentItems.length}</span> of{" "}
-              <span className="font-semibold">{filteredAttendance.length}</span>{" "}
+              <span className="font-semibold">{filteredPayments.length}</span>{" "}
               records
             </p>
           </div>
         </div>
-        <AttendanceTable
-          attendanceRecords={currentItems}
-          onEditAttendance={handleEditAttendance}
-          onDeleteAttendance={handleDeleteAttendance}
+        <PaymentsTable
+          paymentsRecords={currentItems}
+          onEditPayment={handleEditPayment}
+          onDeletePayment={handleDeletePayment}
           loading={loading}
         />
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
             <div className="text-sm text-gray-600">
               Showing {indexOfFirstItem + 1} to{" "}
-              {Math.min(indexOfLastItem, filteredAttendance.length)} of{" "}
-              {filteredAttendance.length} entries
+              {Math.min(indexOfLastItem, filteredPayments.length)} of{" "}
+              {filteredPayments.length} entries
             </div>
             <div className="flex items-center space-x-1">
               <button
@@ -446,27 +425,27 @@ const AttendanceList = () => {
           </div>
         )}
         <Modal
-          isOpen={openAddAttendanceModal}
-          onClose={() => setOpenAddAttendanceModal(false)}
-          title="Add New Attendance Record"
+          isOpen={openAddPaymentModal}
+          onClose={() => setOpenAddPaymentModal(false)}
+          title="Add New Payment Record"
         >
-          <AttendanceForm
-            onAddAttendance={handleAddAttendance}
+          <PaymentForm
+            onAddPayment={handleAddPayment}
             drivers={driverData}
             users={userData}
           />
         </Modal>
         <Modal
-          isOpen={openEditAttendanceModal}
+          isOpen={openEditPaymentModal}
           onClose={() => {
-            setOpenEditAttendanceModal(false);
-            setSelectedAttendance(null);
+            setOpenEditPaymentModal(false);
+            setSelectedPayment(null);
           }}
-          title="Edit Attendance Record"
+          title="Edit Payment Record"
         >
-          <AttendanceForm
-            initialAttendanceData={selectedAttendance}
-            onAddAttendance={handleAddAttendance}
+          <PaymentForm
+            initialPaymentData={selectedPayment}
+            onAddPayment={handleAddPayment}
             isEditing={true}
             drivers={driverData}
             users={userData}
@@ -477,4 +456,4 @@ const AttendanceList = () => {
   );
 };
 
-export default AttendanceList;
+export default PaymentsList;

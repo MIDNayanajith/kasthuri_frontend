@@ -47,7 +47,10 @@ export const SIDE_BAR_DATA = [
     id: "05",
     label: "Finance",
     icon: DollarSign,
-    children: [{ label: "Invoice", path: "/invoice" }],
+    children: [
+      { label: "Invoice", path: "/invoice" },
+      { label: "Payments", path: "/payments" },
+    ],
   },
   {
     id: "06",

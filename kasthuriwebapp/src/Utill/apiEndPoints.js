@@ -48,5 +48,19 @@ export const API_ENDPOINTS = {
   DELETE_INVOICE: (id) => `/invoices/${id}`,
   DOWNLOAD_INVOICE_PDF: (id) => `/invoices/${id}/pdf`,
 
+  // Attendance endpoints
+  GET_ALL_ATTENDANCE: "/attendances",
+  ADD_ATTENDANCE: "/attendances",
+  UPDATE_ATTENDANCE: (id) => `/attendances/${id}`,
+  DELETE_ATTENDANCE: (id) => `/attendances/${id}`,
+  DOWNLOAD_ATTENDANCE_EXCEL: "/excel/download/attendance",
+
+  // Payment endpoints
+  GET_ALL_PAYMENTS: "/payments",
+  ADD_PAYMENT: "/payments",
+  UPDATE_PAYMENT: (id) => `/payments/${id}`,
+  DELETE_PAYMENT: (id) => `/payments/${id}`,
+  DOWNLOAD_PAYMENTS_EXCEL: "/excel/download/payments",
+
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
 };
