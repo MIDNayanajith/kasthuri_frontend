@@ -7,185 +7,164 @@ import {
   Calendar,
   DollarSign,
   CheckCircle,
+  XCircle,
   AlertCircle,
-  ChevronRight,
-  ChevronDown,
+  FileText,
 } from "lucide-react";
-
 const AdvanceTable = ({
   advancesRecords,
   onEditAdvance,
   onDeleteAdvance,
   loading,
 }) => {
-  const [expandedRows, setExpandedRows] = React.useState({});
-
-  const toggleRow = (id) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#A594F9]"></div>
+        </div>
+      </div>
+    );
   }
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      <div className="hidden lg:block">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-max table-auto">
+          <thead className="bg-gray-50 border-b border-gray-200 hidden md:table-header-group">
+            <tr>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Recipient
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Date
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Amount
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Notes
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Created At
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {advancesRecords.length === 0 ? (
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px] bg-gray-50">
-                  Recipient
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
-                  Amount
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px] bg-gray-50">
-                  Notes
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {advancesRecords.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
+                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  <DollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-lg font-medium text-gray-400">
                     No advance records found
+                  </p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Get started by adding your first advance record
+                  </p>
+                </td>
+              </tr>
+            ) : (
+              advancesRecords.map((record) => (
+                <tr
+                  key={record.id}
+                  className="hover:bg-gray-50 transition-colors duration-150 block md:table-row border-b md:border-none"
+                >
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Recipient'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm text-gray-900 pt-6 md:pt-0">
+                      <User className="w-4 h-4 mr-2 text-gray-400" />
+                      <div>
+                        <p className="font-medium">{record.recipientName}</p>
+                        <p className="text-xs text-gray-500">
+                          {record.recipientType}
+                        </p>
+                      </div>
+                    </div>
                   </td>
-                </tr>
-              ) : (
-                advancesRecords.map((record) => (
-                  <tr key={record.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2 text-gray-400" />
-                        {record.recipientName} ({record.recipientType})
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                        {record.advanceDate}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1 text-gray-400" />
-                        {record.amount}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Date'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm text-gray-900 pt-6 md:pt-0">
+                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                      {record.advanceDate
+                        ? new Date(record.advanceDate).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Amount'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm text-gray-900 pt-6 md:pt-0">
+                      <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
+                      {record.amount || "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Status'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm pt-6 md:pt-0">
                       {record.status === "Deducted" ? (
-                        <span className="flex items-center">
-                          <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
-                          Deducted
-                        </span>
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Deducted
+                          </span>
+                        </>
                       ) : record.status === "Partial" ? (
-                        <span className="flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1 text-orange-500" />
-                          Partial
-                        </span>
+                        <>
+                          <AlertCircle className="w-4 h-4 mr-2 text-orange-500" />
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            Partial
+                          </span>
+                        </>
                       ) : (
-                        <span className="flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1 text-yellow-500" />
-                          Pending
-                        </span>
+                        <>
+                          <XCircle className="w-4 h-4 mr-2 text-red-500" />
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Pending
+                          </span>
+                        </>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {record.notes || "-"}
-                    </td>
-                    <td className="px-4 py-3">
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Notes'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm text-gray-900 pt-6 md:pt-0">
+                      <FileText className="w-4 h-4 mr-2 text-gray-400" />
+                      {record.notes || "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap block md:table-cell relative md:static before:content-['Created_At'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden">
+                    <div className="flex items-center text-sm text-gray-900 pt-6 md:pt-0">
+                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                      {record.createdAt
+                        ? new Date(record.createdAt).toLocaleDateString()
+                        : "N/A"}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium block md:table-cell relative md:static before:content-['Actions'] before:font-semibold before:text-xs before:uppercase before:text-gray-600 before:absolute before:left-6 before:top-2 md:before:hidden pb-6 md:pb-4">
+                    <div className="flex items-center space-x-2 pt-6 md:pt-0">
                       <button
                         onClick={() => onEditAdvance(record)}
-                        className="mr-2 text-blue-600 hover:text-blue-800"
+                        className="inline-flex items-center px-3 py-1.5 border border-[#A594F9] text-[#A594F9] rounded-lg text-sm hover:bg-[#F5EFFF] transition-colors duration-200 cursor-pointer"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} className="mr-1" />
+                        Edit
                       </button>
                       <button
                         onClick={() => onDeleteAdvance(record)}
-                        className="text-red-600 hover:text-red-800"
+                        className="inline-flex items-center px-3 py-1.5 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-50 transition-colors duration-200 cursor-pointer"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={14} className="mr-1" />
+                        Delete
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div className="lg:hidden">
-        {advancesRecords.map((record) => {
-          const isExpanded = expandedRows[record.id];
-          return (
-            <div key={record.id} className="p-4 border-b">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{record.recipientName}</p>
-                  <p className="text-sm text-gray-600">{record.advanceDate}</p>
-                </div>
-                <button
-                  onClick={() => toggleRow(record.id)}
-                  className="text-gray-500"
-                >
-                  {isExpanded ? (
-                    <ChevronDown size={20} />
-                  ) : (
-                    <ChevronRight size={20} />
-                  )}
-                </button>
-              </div>
-              {isExpanded && (
-                <div className="mt-2 space-y-2">
-                  <p className="text-sm">Amount: {record.amount}</p>
-                  <p className="text-sm">Status: {record.status}</p>
-                  <p className="text-sm">Notes: {record.notes || "-"}</p>
-                  <div className="flex gap-4 mt-2">
-                    <button
-                      onClick={() => onEditAdvance(record)}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <Edit2 size={16} />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => onDeleteAdvance(record)}
-                      className="text-red-600 hover:text-red-800 flex items-center gap-1"
-                    >
-                      <Trash2 size={16} />
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {advancesRecords.length === 0 && (
-          <p className="p-4 text-center text-gray-500">
-            No advance records found
-          </p>
-        )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 };
-
 export default AdvanceTable;

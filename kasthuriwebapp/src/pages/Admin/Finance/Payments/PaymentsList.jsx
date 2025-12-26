@@ -11,6 +11,8 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
+  Calendar,
+  User,
 } from "lucide-react";
 import PaymentsTable from "./PaymentsTable";
 import axiosConfig from "../../../../Utill/axiosConfig";
@@ -18,7 +20,6 @@ import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
 import toast from "react-hot-toast";
 import Modal from "../../../../components/Admin/Modal";
 import PaymentForm from "./PaymentForm";
-
 const PaymentsList = () => {
   useUser();
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,6 @@ const PaymentsList = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
   const fetchPaymentsDetails = async (
     recipientType = null,
     recipientId = null,
@@ -64,6 +64,8 @@ const PaymentsList = () => {
                   ?.name || "Unknown"
               : usersResponse.data.find((u) => u.id === p.recipientId)
                   ?.username || "Unknown",
+          netPay:
+            p.baseAmount - (p.deductions || 0) - (p.advancesDeducted || 0),
         }));
         setPaymentsData(paymentsWithDetails);
         setFilteredPayments(paymentsWithDetails);
@@ -81,11 +83,9 @@ const PaymentsList = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchPaymentsDetails();
   }, []);
-
   useEffect(() => {
     if (searchTerm) {
       const filtered = paymentsData.filter(
@@ -101,7 +101,6 @@ const PaymentsList = () => {
       setFilteredPayments(paymentsData);
     }
   }, [searchTerm, paymentsData]);
-
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredPayments.slice(
@@ -109,23 +108,19 @@ const PaymentsList = () => {
     indexOfLastItem
   );
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
-
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
-
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
-
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
-
   const handleApplyFilter = () => {
     fetchPaymentsDetails(
       filterRecipientType,
@@ -133,7 +128,6 @@ const PaymentsList = () => {
       filterMonth
     );
   };
-
   const handleResetFilter = () => {
     setFilterRecipientType("");
     setFilterRecipientId("");
@@ -141,7 +135,6 @@ const PaymentsList = () => {
     setSearchTerm("");
     fetchPaymentsDetails();
   };
-
   const handleDownloadExcel = async () => {
     try {
       const params = {};
@@ -168,7 +161,6 @@ const PaymentsList = () => {
       toast.error("Failed to download Excel");
     }
   };
-
   const handleAddPayment = async (paymentData, isEditing = false) => {
     try {
       let response;
@@ -204,12 +196,10 @@ const PaymentsList = () => {
       throw error;
     }
   };
-
   const handleEditPayment = (paymentToEdit) => {
     setSelectedPayment(paymentToEdit);
     setOpenEditPaymentModal(true);
   };
-
   const handleDeletePayment = async (paymentToDelete) => {
     if (!window.confirm(`Delete payment record? This action cannot be undone.`))
       return;
@@ -225,7 +215,6 @@ const PaymentsList = () => {
       );
     }
   };
-
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
@@ -245,16 +234,19 @@ const PaymentsList = () => {
     }
     return pageNumbers;
   };
-
   const recipientOptions =
     filterRecipientType === "Driver"
       ? driverData.map((d) => ({ value: d.id, label: d.name }))
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
-
+  // Calculate stats
+  const totalAmount = filteredPayments
+    .reduce((sum, p) => sum + p.netPay, 0)
+    .toFixed(2);
   return (
     <Dashboard activeMenu="Finance">
       <div className="my-5 mx-auto">
+        {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -280,6 +272,7 @@ const PaymentsList = () => {
             </button>
           </div>
         </div>
+        {/* Search Bar */}
         <div className="relative mb-6">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -293,6 +286,7 @@ const PaymentsList = () => {
             className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
+        {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -309,8 +303,10 @@ const PaymentsList = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Recipient Type Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <User className="w-4 h-4" />
                   Recipient Type
                 </label>
                 <select
@@ -323,8 +319,10 @@ const PaymentsList = () => {
                   <option value="User">User</option>
                 </select>
               </div>
+              {/* Recipient Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <User className="w-4 h-4" />
                   Recipient
                 </label>
                 <select
@@ -340,8 +338,10 @@ const PaymentsList = () => {
                   ))}
                 </select>
               </div>
+              {/* Month Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Calendar className="w-4 h-4" />
                   Month
                 </label>
                 <input
@@ -362,29 +362,129 @@ const PaymentsList = () => {
               <button
                 onClick={handleDownloadExcel}
                 className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
+                title="Download Excel Report"
               >
                 <Download size={18} />
                 <span className="hidden sm:inline">Excel</span>
               </button>
             </div>
+            {/* Active Filters Display */}
+            {(filterRecipientType || filterRecipientId || filterMonth) && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-600 mb-2">Active Filters:</p>
+                <div className="flex flex-wrap gap-2">
+                  {filterRecipientType && (
+                    <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full">
+                      <User size={12} />
+                      Type: {filterRecipientType}
+                      <button
+                        onClick={() => setFilterRecipientType("")}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {filterRecipientId && (
+                    <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-800 text-xs px-3 py-1.5 rounded-full">
+                      <User size={12} />
+                      Recipient:{" "}
+                      {recipientOptions.find(
+                        (r) => r.value == filterRecipientId
+                      )?.label || filterRecipientId}
+                      <button
+                        onClick={() => setFilterRecipientId("")}
+                        className="ml-1 text-purple-600 hover:text-purple-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                  {filterMonth && (
+                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-3 py-1.5 rounded-full">
+                      <Calendar size={12} />
+                      Month: {filterMonth}
+                      <button
+                        onClick={() => setFilterMonth("")}
+                        className="ml-1 text-green-600 hover:text-green-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+        {/* Stats Summary */}
+        {filteredPayments.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {/* Total Records Card */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Records</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {filteredPayments.length}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                </div>
+              </div>
+            </div>
+            {/* Total Amount Card */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Payments</p>
+                  <p className="text-2xl font-bold text-gray-800">
+                    {totalAmount}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-purple-600" />
+                </div>
+              </div>
+            </div>
+            {/* Empty space to maintain layout */}
+            <div className="hidden md:block"></div>
+            <div className="hidden md:block"></div>
+          </div>
+        )}
+        {/* Quick Actions Bar */}
+        <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm text-gray-600">
               Showing{" "}
-              <span className="font-semibold">{currentItems.length}</span> of{" "}
               <span className="font-semibold">{filteredPayments.length}</span>{" "}
-              records
+              payment records
+              {(filterRecipientType || filterRecipientId || filterMonth) && (
+                <span className="text-[#4F46E5] ml-2">(Filtered)</span>
+              )}
             </p>
           </div>
+          <div className="flex items-center gap-2">
+            {!showFilters && (
+              <button
+                onClick={handleDownloadExcel}
+                className="flex items-center gap-2 border border-gray-300 text-gray-700 px-3 py-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-300 text-sm"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">Download Excel</span>
+              </button>
+            )}
+          </div>
         </div>
+        {/* Payments Table */}
         <PaymentsTable
           paymentsRecords={currentItems}
           onEditPayment={handleEditPayment}
           onDeletePayment={handleDeletePayment}
           loading={loading}
         />
+        {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
             <div className="text-sm text-gray-600">
@@ -423,6 +523,7 @@ const PaymentsList = () => {
             </div>
           </div>
         )}
+        {/* Add Payment Modal */}
         <Modal
           isOpen={openAddPaymentModal}
           onClose={() => setOpenAddPaymentModal(false)}
@@ -434,6 +535,7 @@ const PaymentsList = () => {
             users={userData}
           />
         </Modal>
+        {/* Edit Payment Modal */}
         <Modal
           isOpen={openEditPaymentModal}
           onClose={() => {
@@ -454,5 +556,4 @@ const PaymentsList = () => {
     </Dashboard>
   );
 };
-
 export default PaymentsList;

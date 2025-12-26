@@ -303,10 +303,14 @@ const AttendanceList = () => {
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
   // Calculate stats
-  const presentCount = filteredAttendance.filter(
+  const today = new Date().toISOString().split("T")[0];
+  const todaysAttendance = filteredAttendance.filter(
+    (a) => a.attendanceDate === today
+  );
+  const presentCount = todaysAttendance.filter(
     (a) => a.status === "Present"
   ).length;
-  const absentCount = filteredAttendance.filter(
+  const absentCount = todaysAttendance.filter(
     (a) => a.status === "Absent"
   ).length;
   const leaveCount = filteredAttendance.filter(
@@ -540,20 +544,6 @@ const AttendanceList = () => {
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                   <CalendarCheck className="w-5 h-5 text-red-600" />
-                </div>
-              </div>
-            </div>
-            {/* Total Hours Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Hours</p>
-                  <p className="text-2xl font-bold text-purple-600">
-                    {totalHours.toFixed(2)}
-                  </p>
-                </div>
-                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </div>
