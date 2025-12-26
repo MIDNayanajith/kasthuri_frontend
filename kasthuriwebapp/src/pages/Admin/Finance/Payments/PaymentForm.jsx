@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import Input from "../../../../components/Input";
 import { LoaderCircle } from "lucide-react";
+import axiosConfig from "../../../../Utill/axiosConfig";
+import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
 
 const PaymentForm = ({
   onAddPayment,
@@ -16,14 +18,15 @@ const PaymentForm = ({
     periodMonth: "",
     periodYear: "",
     baseAmount: "",
-    tripBonus: "",
     deductions: "",
     advancesDeducted: "",
     paymentDate: "",
     status: "Pending",
     notes: "",
   });
+  const [netPayPreview, setNetPayPreview] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [fetchingAdvances, setFetchingAdvances] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -35,7 +38,6 @@ const PaymentForm = ({
         periodMonth: initialPaymentData.periodMonth || "",
         periodYear: initialPaymentData.periodYear || "",
         baseAmount: initialPaymentData.baseAmount || "",
-        tripBonus: initialPaymentData.tripBonus || "",
         deductions: initialPaymentData.deductions || "",
         advancesDeducted: initialPaymentData.advancesDeducted || "",
         paymentDate: initialPaymentData.paymentDate || "",
@@ -49,7 +51,6 @@ const PaymentForm = ({
         periodMonth: "",
         periodYear: "",
         baseAmount: "",
-        tripBonus: "",
         deductions: "",
         advancesDeducted: "",
         paymentDate: "",
@@ -58,6 +59,66 @@ const PaymentForm = ({
       });
     }
   }, [isEditing, initialPaymentData]);
+
+  useEffect(() => {
+    const calculateNetPay = () => {
+      const base = parseFloat(payment.baseAmount) || 0;
+      const deduct = parseFloat(payment.deductions) || 0;
+      const adv = parseFloat(payment.advancesDeducted) || 0;
+      setNetPayPreview(base - deduct - adv);
+    };
+    calculateNetPay();
+  }, [payment.baseAmount, payment.deductions, payment.advancesDeducted]);
+
+  useEffect(() => {
+    const fetchPendingAdvances = async () => {
+      if (
+        payment.recipientType &&
+        payment.recipientId &&
+        payment.periodMonth &&
+        payment.periodYear
+      ) {
+        setFetchingAdvances(true);
+        try {
+          const month = `${payment.periodYear}-${String(
+            payment.periodMonth
+          ).padStart(2, "0")}`;
+          const response = await axiosConfig.get(
+            API_ENDPOINTS.GET_FILTERED_ADVANCES,
+            {
+              params: {
+                recipientType: payment.recipientType,
+                recipientId: payment.recipientId,
+                month,
+              },
+            }
+          );
+          const pending = response.data.filter(
+            (adv) => adv.status === "Pending" || adv.status === "Partial"
+          );
+          const total = pending.reduce(
+            (sum, adv) => sum + (parseFloat(adv.amount) || 0),
+            0
+          );
+          setPayment((prev) => ({
+            ...prev,
+            advancesDeducted: total.toString(),
+          }));
+        } catch (err) {
+          console.error("Failed to fetch advances", err);
+          setPayment((prev) => ({ ...prev, advancesDeducted: "0" }));
+        } finally {
+          setFetchingAdvances(false);
+        }
+      }
+    };
+    fetchPendingAdvances();
+  }, [
+    payment.recipientType,
+    payment.recipientId,
+    payment.periodMonth,
+    payment.periodYear,
+  ]);
 
   const handleChange = (key, value) => {
     setPayment({ ...payment, [key]: value });
@@ -98,7 +159,6 @@ const PaymentForm = ({
         periodMonth: parseInt(payment.periodMonth),
         periodYear: parseInt(payment.periodYear),
         baseAmount: parseFloat(payment.baseAmount),
-        tripBonus: payment.tripBonus ? parseFloat(payment.tripBonus) : null,
         deductions: payment.deductions ? parseFloat(payment.deductions) : null,
         advancesDeducted: payment.advancesDeducted
           ? parseFloat(payment.advancesDeducted)
@@ -122,7 +182,6 @@ const PaymentForm = ({
     payment.recipientType === "Driver"
       ? drivers.map((d) => ({ value: d.id, label: d.name }))
       : users.map((u) => ({ value: u.id, label: u.username }));
-
   recipientOptions.unshift({ value: "", label: "Select Recipient" });
 
   const statusOptions = [
@@ -202,18 +261,6 @@ const PaymentForm = ({
           type="number"
         />
         <Input
-          value={payment.tripBonus}
-          onChange={({ target }) => handleChange("tripBonus", target.value)}
-          label={
-            <>
-              Trip Bonus{" "}
-              <span className="text-gray-300 text-sm">(Optional)</span>
-            </>
-          }
-          placeholder="Enter trip bonus"
-          type="number"
-        />
-        <Input
           value={payment.deductions}
           onChange={({ target }) => handleChange("deductions", target.value)}
           label={
@@ -225,19 +272,34 @@ const PaymentForm = ({
           placeholder="Enter deductions"
           type="number"
         />
+        <div className="relative">
+          <Input
+            value={payment.advancesDeducted}
+            label={
+              <>
+                Advances Deducted{" "}
+                <span className="text-gray-300 text-sm">(Auto-calculated)</span>
+              </>
+            }
+            placeholder="Auto-calculated"
+            type="number"
+            readOnly
+          />
+          {fetchingAdvances && (
+            <LoaderCircle className="absolute right-3 top-9 w-4 h-4 animate-spin" />
+          )}
+        </div>
         <Input
-          value={payment.advancesDeducted}
-          onChange={({ target }) =>
-            handleChange("advancesDeducted", target.value)
-          }
+          value={netPayPreview.toFixed(2)}
           label={
             <>
-              Advances Deducted{" "}
-              <span className="text-gray-300 text-sm">(Optional)</span>
+              Net Pay Preview{" "}
+              <span className="text-gray-300 text-sm">(Calculated)</span>
             </>
           }
-          placeholder="Enter advances deducted"
+          placeholder="Calculated"
           type="number"
+          readOnly
         />
         <Input
           value={payment.paymentDate}
@@ -285,7 +347,7 @@ const PaymentForm = ({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || fetchingAdvances}
           className="flex items-center gap-2 bg-gradient-to-r from-[#8A75EB] to-[#A594F9] text-white px-6 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#7A65DB] hover:to-[#9584E9] transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed shadow-md"
         >
           {loading ? (

@@ -62,5 +62,12 @@ export const API_ENDPOINTS = {
   DELETE_PAYMENT: (id) => `/payments/${id}`,
   DOWNLOAD_PAYMENTS_EXCEL: "/excel/download/payments",
 
+  // Advance endpoints
+  GET_ALL_ADVANCES: "/advances",
+  ADD_ADVANCE: "/advances",
+  UPDATE_ADVANCE: (id) => `/advances/${id}`,
+  DELETE_ADVANCE: (id) => `/advances/${id}`,
+  DOWNLOAD_ADVANCES_EXCEL: "/excel/download/advances",
+
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
 };

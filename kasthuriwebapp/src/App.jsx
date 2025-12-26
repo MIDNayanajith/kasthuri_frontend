@@ -13,6 +13,7 @@ import OwnVehiclesList from "./pages/Admin/OwnVehicles/OwnVehiclesList";
 import ExVehiclesList from "./pages/Admin/ExVehicles/ExVehiclesList";
 import InvoiceList from "./pages/Admin/Finance/Invoice/InvoiceList";
 import PaymentsList from "./pages/Admin/Finance/Payments/PaymentsList";
+import AdvanceList from "./pages/Admin/Finance/Advance/AdvanceList";
 
 const App = () => {
   return (
@@ -31,6 +32,7 @@ const App = () => {
             <Route path="/exvehicles" element={<ExVehiclesList />} />
             <Route path="/invoice" element={<InvoiceList />} />
             <Route path="/payments" element={<PaymentsList />} />
+            <Route path="/advance" element={<AdvanceList />} />
             <Route path="/transports" element={<TransportList />} />
             <Route path="/drivers" element={<DriversList />} />
             {/* Add more routes here for admin dashboard, etc. */}

@@ -50,6 +50,7 @@ export const SIDE_BAR_DATA = [
     children: [
       { label: "Invoice", path: "/invoice" },
       { label: "Payments", path: "/payments" },
+      { label: "Advance", path: "/advance" },
     ],
   },
   {

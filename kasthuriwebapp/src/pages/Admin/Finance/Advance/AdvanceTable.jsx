@@ -1,4 +1,4 @@
-// PaymentsTable.jsx
+// AdvanceTable.jsx
 import React from "react";
 import {
   Edit2,
@@ -12,10 +12,10 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const PaymentsTable = ({
-  paymentsRecords,
-  onEditPayment,
-  onDeletePayment,
+const AdvanceTable = ({
+  advancesRecords,
+  onEditAdvance,
+  onDeleteAdvance,
   loading,
 }) => {
   const [expandedRows, setExpandedRows] = React.useState({});
@@ -42,16 +42,16 @@ const PaymentsTable = ({
                   Recipient
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
-                  Period
+                  Date
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
-                  Amounts
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
-                  Net Pay
+                  Amount
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[100px] bg-gray-50">
                   Status
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px] bg-gray-50">
+                  Notes
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[120px] bg-gray-50">
                   Actions
@@ -59,17 +59,17 @@ const PaymentsTable = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paymentsRecords.length === 0 ? (
+              {advancesRecords.length === 0 ? (
                 <tr>
                   <td
                     colSpan="6"
                     className="px-6 py-8 text-center text-gray-500"
                   >
-                    No payment records found
+                    No advance records found
                   </td>
                 </tr>
               ) : (
-                paymentsRecords.map((record) => (
+                advancesRecords.map((record) => (
                   <tr key={record.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center">
@@ -80,27 +80,25 @@ const PaymentsTable = ({
                     <td className="px-4 py-3">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                        {record.periodMonth}/{record.periodYear}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">
-                        Base: {record.baseAmount} <br />
-                        Deduct: {record.deductions || 0} <br />
-                        Adv: {record.advancesDeducted || 0}
+                        {record.advanceDate}
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center">
                         <DollarSign className="w-4 h-4 mr-1 text-gray-400" />
-                        {record.netPay}
+                        {record.amount}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {record.status === "Paid" ? (
+                      {record.status === "Deducted" ? (
                         <span className="flex items-center">
                           <CheckCircle className="w-4 h-4 mr-1 text-green-500" />
-                          Paid
+                          Deducted
+                        </span>
+                      ) : record.status === "Partial" ? (
+                        <span className="flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1 text-orange-500" />
+                          Partial
                         </span>
                       ) : (
                         <span className="flex items-center">
@@ -109,15 +107,18 @@ const PaymentsTable = ({
                         </span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {record.notes || "-"}
+                    </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => onEditPayment(record)}
+                        onClick={() => onEditAdvance(record)}
                         className="mr-2 text-blue-600 hover:text-blue-800"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
-                        onClick={() => onDeletePayment(record)}
+                        onClick={() => onDeleteAdvance(record)}
                         className="text-red-600 hover:text-red-800"
                       >
                         <Trash2 size={16} />
@@ -131,16 +132,14 @@ const PaymentsTable = ({
         </div>
       </div>
       <div className="lg:hidden">
-        {paymentsRecords.map((record) => {
+        {advancesRecords.map((record) => {
           const isExpanded = expandedRows[record.id];
           return (
             <div key={record.id} className="p-4 border-b">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{record.recipientName}</p>
-                  <p className="text-sm text-gray-600">
-                    {record.periodMonth}/{record.periodYear}
-                  </p>
+                  <p className="text-sm text-gray-600">{record.advanceDate}</p>
                 </div>
                 <button
                   onClick={() => toggleRow(record.id)}
@@ -155,27 +154,19 @@ const PaymentsTable = ({
               </div>
               {isExpanded && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-sm">Base: {record.baseAmount}</p>
-                  <p className="text-sm">
-                    Deductions: {record.deductions || 0}
-                  </p>
-                  <p className="text-sm">
-                    Advances: {record.advancesDeducted || 0}
-                  </p>
-                  <p className="text-sm font-medium">
-                    Net Pay: {record.netPay}
-                  </p>
+                  <p className="text-sm">Amount: {record.amount}</p>
                   <p className="text-sm">Status: {record.status}</p>
+                  <p className="text-sm">Notes: {record.notes || "-"}</p>
                   <div className="flex gap-4 mt-2">
                     <button
-                      onClick={() => onEditPayment(record)}
+                      onClick={() => onEditAdvance(record)}
                       className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
                     >
                       <Edit2 size={16} />
                       Edit
                     </button>
                     <button
-                      onClick={() => onDeletePayment(record)}
+                      onClick={() => onDeleteAdvance(record)}
                       className="text-red-600 hover:text-red-800 flex items-center gap-1"
                     >
                       <Trash2 size={16} />
@@ -187,9 +178,9 @@ const PaymentsTable = ({
             </div>
           );
         })}
-        {paymentsRecords.length === 0 && (
+        {advancesRecords.length === 0 && (
           <p className="p-4 text-center text-gray-500">
-            No payment records found
+            No advance records found
           </p>
         )}
       </div>
@@ -197,4 +188,4 @@ const PaymentsTable = ({
   );
 };
 
-export default PaymentsTable;
+export default AdvanceTable;

@@ -1,4 +1,4 @@
-// PaymentsList.jsx
+// AdvanceList.jsx
 import React, { useEffect, useState } from "react";
 import Dashboard from "../../../../components/Admin/Dashboard";
 import { useUser } from "../../../../hooks/useUser";
@@ -12,32 +12,32 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import PaymentsTable from "./PaymentsTable";
+import AdvanceTable from "./AdvanceTable";
 import axiosConfig from "../../../../Utill/axiosConfig";
 import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
 import toast from "react-hot-toast";
 import Modal from "../../../../components/Admin/Modal";
-import PaymentForm from "./PaymentForm";
+import AdvanceForm from "./AdvanceForm";
 
-const PaymentsList = () => {
+const AdvanceList = () => {
   useUser();
   const [loading, setLoading] = useState(false);
-  const [paymentsData, setPaymentsData] = useState([]);
+  const [advancesData, setAdvancesData] = useState([]);
   const [driverData, setDriverData] = useState([]);
   const [userData, setUserData] = useState([]);
-  const [filteredPayments, setFilteredPayments] = useState([]);
+  const [filteredAdvances, setFilteredAdvances] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRecipientType, setFilterRecipientType] = useState("");
   const [filterRecipientId, setFilterRecipientId] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [openAddPaymentModal, setOpenAddPaymentModal] = useState(false);
-  const [openEditPaymentModal, setOpenEditPaymentModal] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [openAddAdvanceModal, setOpenAddAdvanceModal] = useState(false);
+  const [openEditAdvanceModal, setOpenEditAdvanceModal] = useState(false);
+  const [selectedAdvance, setSelectedAdvance] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  const fetchPaymentsDetails = async (
+  const fetchAdvancesDetails = async (
     recipientType = null,
     recipientId = null,
     month = null
@@ -49,24 +49,24 @@ const PaymentsList = () => {
       if (recipientType) params.recipientType = recipientType;
       if (recipientId) params.recipientId = recipientId;
       if (month) params.month = month;
-      const [paymentsResponse, driversResponse, usersResponse] =
+      const [advancesResponse, driversResponse, usersResponse] =
         await Promise.all([
-          axiosConfig.get(API_ENDPOINTS.GET_ALL_PAYMENTS, { params }),
+          axiosConfig.get(API_ENDPOINTS.GET_ALL_ADVANCES, { params }),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_DRIVERS),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_USERS),
         ]);
-      if (paymentsResponse.status === 200) {
-        const paymentsWithDetails = paymentsResponse.data.map((p) => ({
-          ...p,
+      if (advancesResponse.status === 200) {
+        const advancesWithDetails = advancesResponse.data.map((a) => ({
+          ...a,
           recipientName:
-            p.recipientType === "Driver"
-              ? driversResponse.data.find((d) => d.id === p.recipientId)
+            a.recipientType === "Driver"
+              ? driversResponse.data.find((d) => d.id === a.recipientId)
                   ?.name || "Unknown"
-              : usersResponse.data.find((u) => u.id === p.recipientId)
+              : usersResponse.data.find((u) => u.id === a.recipientId)
                   ?.username || "Unknown",
         }));
-        setPaymentsData(paymentsWithDetails);
-        setFilteredPayments(paymentsWithDetails);
+        setAdvancesData(advancesWithDetails);
+        setFilteredAdvances(advancesWithDetails);
         setCurrentPage(1);
       }
       if (driversResponse.status === 200) {
@@ -83,32 +83,32 @@ const PaymentsList = () => {
   };
 
   useEffect(() => {
-    fetchPaymentsDetails();
+    fetchAdvancesDetails();
   }, []);
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = paymentsData.filter(
-        (payment) =>
-          payment.recipientName
+      const filtered = advancesData.filter(
+        (advance) =>
+          advance.recipientName
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          payment.status?.toLowerCase().includes(searchTerm.toLowerCase())
+          advance.status?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredPayments(filtered);
+      setFilteredAdvances(filtered);
       setCurrentPage(1);
     } else {
-      setFilteredPayments(paymentsData);
+      setFilteredAdvances(advancesData);
     }
-  }, [searchTerm, paymentsData]);
+  }, [searchTerm, advancesData]);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredPayments.slice(
+  const currentItems = filteredAdvances.slice(
     indexOfFirstItem,
     indexOfLastItem
   );
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredAdvances.length / itemsPerPage);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -127,7 +127,7 @@ const PaymentsList = () => {
   };
 
   const handleApplyFilter = () => {
-    fetchPaymentsDetails(
+    fetchAdvancesDetails(
       filterRecipientType,
       filterRecipientId ? parseInt(filterRecipientId) : null,
       filterMonth
@@ -139,7 +139,7 @@ const PaymentsList = () => {
     setFilterRecipientId("");
     setFilterMonth("");
     setSearchTerm("");
-    fetchPaymentsDetails();
+    fetchAdvancesDetails();
   };
 
   const handleDownloadExcel = async () => {
@@ -149,7 +149,7 @@ const PaymentsList = () => {
       if (filterRecipientId) params.recipientId = filterRecipientId;
       if (filterMonth) params.month = filterMonth;
       const response = await axiosConfig.get(
-        API_ENDPOINTS.DOWNLOAD_PAYMENTS_EXCEL,
+        API_ENDPOINTS.DOWNLOAD_ADVANCES_EXCEL,
         {
           params,
           responseType: "blob",
@@ -158,7 +158,7 @@ const PaymentsList = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      let filename = "payments_report.xlsx";
+      let filename = "advances_report.xlsx";
       link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
@@ -169,28 +169,28 @@ const PaymentsList = () => {
     }
   };
 
-  const handleAddPayment = async (paymentData, isEditing = false) => {
+  const handleAddAdvance = async (advanceData, isEditing = false) => {
     try {
       let response;
-      if (isEditing && selectedPayment) {
+      if (isEditing && selectedAdvance) {
         response = await axiosConfig.put(
-          API_ENDPOINTS.UPDATE_PAYMENT(selectedPayment.id),
-          paymentData
+          API_ENDPOINTS.UPDATE_ADVANCE(selectedAdvance.id),
+          advanceData
         );
       } else {
         response = await axiosConfig.post(
-          API_ENDPOINTS.ADD_PAYMENT,
-          paymentData
+          API_ENDPOINTS.ADD_ADVANCE,
+          advanceData
         );
       }
       if (response.status === 200 || response.status === 201) {
         toast.success(
-          `Payment record ${isEditing ? "updated" : "added"} successfully!`
+          `Advance record ${isEditing ? "updated" : "added"} successfully!`
         );
-        setOpenAddPaymentModal(false);
-        setOpenEditPaymentModal(false);
-        setSelectedPayment(null);
-        fetchPaymentsDetails(
+        setOpenAddAdvanceModal(false);
+        setOpenEditAdvanceModal(false);
+        setSelectedAdvance(null);
+        fetchAdvancesDetails(
           filterRecipientType,
           filterRecipientId,
           filterMonth
@@ -199,29 +199,29 @@ const PaymentsList = () => {
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
-          `Failed to ${isEditing ? "update" : "add"} payment record!`
+          `Failed to ${isEditing ? "update" : "add"} advance record!`
       );
       throw error;
     }
   };
 
-  const handleEditPayment = (paymentToEdit) => {
-    setSelectedPayment(paymentToEdit);
-    setOpenEditPaymentModal(true);
+  const handleEditAdvance = (advanceToEdit) => {
+    setSelectedAdvance(advanceToEdit);
+    setOpenEditAdvanceModal(true);
   };
 
-  const handleDeletePayment = async (paymentToDelete) => {
-    if (!window.confirm(`Delete payment record? This action cannot be undone.`))
+  const handleDeleteAdvance = async (advanceToDelete) => {
+    if (!window.confirm(`Delete advance record? This action cannot be undone.`))
       return;
     try {
       await axiosConfig.delete(
-        API_ENDPOINTS.DELETE_PAYMENT(paymentToDelete.id)
+        API_ENDPOINTS.DELETE_ADVANCE(advanceToDelete.id)
       );
-      toast.success("Payment record deleted successfully!");
-      fetchPaymentsDetails(filterRecipientType, filterRecipientId, filterMonth);
+      toast.success("Advance record deleted successfully!");
+      fetchAdvancesDetails(filterRecipientType, filterRecipientId, filterMonth);
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Failed to delete payment record."
+        error.response?.data?.message || "Failed to delete advance record."
       );
     }
   };
@@ -259,17 +259,17 @@ const PaymentsList = () => {
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <DollarSign className="text-[#4F46E5]" size={28} />
-              Payments Management
+              Advances Management
             </h2>
-            <p className="text-gray-600 mt-1">Manage payment records</p>
+            <p className="text-gray-600 mt-1">Manage advance records</p>
           </div>
           <div className="flex gap-3 w-full lg:w-auto">
             <button
-              onClick={() => setOpenAddPaymentModal(true)}
+              onClick={() => setOpenAddAdvanceModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md flex-1 lg:flex-none justify-center"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">Add Payment</span>
+              <span className="hidden sm:inline">Add Advance</span>
             </button>
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -374,23 +374,23 @@ const PaymentsList = () => {
             <p className="text-sm text-gray-600">
               Showing{" "}
               <span className="font-semibold">{currentItems.length}</span> of{" "}
-              <span className="font-semibold">{filteredPayments.length}</span>{" "}
+              <span className="font-semibold">{filteredAdvances.length}</span>{" "}
               records
             </p>
           </div>
         </div>
-        <PaymentsTable
-          paymentsRecords={currentItems}
-          onEditPayment={handleEditPayment}
-          onDeletePayment={handleDeletePayment}
+        <AdvanceTable
+          advancesRecords={currentItems}
+          onEditAdvance={handleEditAdvance}
+          onDeleteAdvance={handleDeleteAdvance}
           loading={loading}
         />
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
             <div className="text-sm text-gray-600">
               Showing {indexOfFirstItem + 1} to{" "}
-              {Math.min(indexOfLastItem, filteredPayments.length)} of{" "}
-              {filteredPayments.length} entries
+              {Math.min(indexOfLastItem, filteredAdvances.length)} of{" "}
+              {filteredAdvances.length} entries
             </div>
             <div className="flex items-center space-x-1">
               <button
@@ -424,27 +424,27 @@ const PaymentsList = () => {
           </div>
         )}
         <Modal
-          isOpen={openAddPaymentModal}
-          onClose={() => setOpenAddPaymentModal(false)}
-          title="Add New Payment Record"
+          isOpen={openAddAdvanceModal}
+          onClose={() => setOpenAddAdvanceModal(false)}
+          title="Add New Advance Record"
         >
-          <PaymentForm
-            onAddPayment={handleAddPayment}
+          <AdvanceForm
+            onAddAdvance={handleAddAdvance}
             drivers={driverData}
             users={userData}
           />
         </Modal>
         <Modal
-          isOpen={openEditPaymentModal}
+          isOpen={openEditAdvanceModal}
           onClose={() => {
-            setOpenEditPaymentModal(false);
-            setSelectedPayment(null);
+            setOpenEditAdvanceModal(false);
+            setSelectedAdvance(null);
           }}
-          title="Edit Payment Record"
+          title="Edit Advance Record"
         >
-          <PaymentForm
-            initialPaymentData={selectedPayment}
-            onAddPayment={handleAddPayment}
+          <AdvanceForm
+            initialAdvanceData={selectedAdvance}
+            onAddAdvance={handleAddAdvance}
             isEditing={true}
             drivers={driverData}
             users={userData}
@@ -455,4 +455,4 @@ const PaymentsList = () => {
   );
 };
 
-export default PaymentsList;
+export default AdvanceList;
