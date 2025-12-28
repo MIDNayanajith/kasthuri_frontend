@@ -1,4 +1,4 @@
-// Updated TransportList.jsx with pagination and scrollbar
+// TransportList.jsx - Add invoice status filter
 import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
@@ -14,6 +14,7 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  DollarSign,
 } from "lucide-react";
 import TransportTable from "./TransportTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -36,6 +37,7 @@ const TransportList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVehicleId, setFilterVehicleId] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
+  const [filterInvoiceStatus, setFilterInvoiceStatus] = useState(""); // Add invoice status filter state
   const [showFilters, setShowFilters] = useState(false);
   const [openAddTransportModal, setOpenAddTransportModal] = useState(false);
   const [openEditTransportModal, setOpenEditTransportModal] = useState(false);
@@ -49,7 +51,8 @@ const TransportList = () => {
   const fetchTransportDetails = async (
     ownVehicleId = null,
     externalVehicleId = null,
-    month = null
+    month = null,
+    invoiceStatus = null // Add invoiceStatus parameter
   ) => {
     if (loading) return;
     setLoading(true);
@@ -58,6 +61,8 @@ const TransportList = () => {
       if (ownVehicleId) params.ownVehicleId = ownVehicleId;
       if (externalVehicleId) params.externalVehicleId = externalVehicleId;
       if (month) params.month = month;
+      if (invoiceStatus) params.invoiceStatus = invoiceStatus; // Add to params
+
       const [
         transportResponse,
         ownVehiclesResponse,
@@ -69,6 +74,7 @@ const TransportList = () => {
         axiosConfig.get(API_ENDPOINTS.GET_ALL_EX_VEHICLES),
         axiosConfig.get(API_ENDPOINTS.GET_ALL_DRIVERS),
       ]);
+
       if (transportResponse.status === 200) {
         // Add vehicle reg number and driver name to each transport record
         const transportWithDetails = transportResponse.data.map((t) => ({
@@ -91,6 +97,7 @@ const TransportList = () => {
         // Reset to first page when data changes
         setCurrentPage(1);
       }
+
       if (ownVehiclesResponse.status === 200) {
         setOwnVehicleData(ownVehiclesResponse.data);
       }
@@ -174,12 +181,18 @@ const TransportList = () => {
         externalVehicleId = id;
       }
     }
-    fetchTransportDetails(ownVehicleId, externalVehicleId, filterMonth);
+    fetchTransportDetails(
+      ownVehicleId,
+      externalVehicleId,
+      filterMonth,
+      filterInvoiceStatus
+    );
   };
 
   const handleResetFilter = () => {
     setFilterVehicleId("");
     setFilterMonth("");
+    setFilterInvoiceStatus(""); // Reset invoice status filter
     setSearchTerm("");
     fetchTransportDetails();
   };
@@ -198,6 +211,8 @@ const TransportList = () => {
       if (ownVehicleId) params.ownVehicleId = ownVehicleId;
       if (externalVehicleId) params.externalVehicleId = externalVehicleId;
       if (filterMonth) params.month = filterMonth;
+      if (filterInvoiceStatus) params.invoiceStatus = filterInvoiceStatus; // Add to Excel download
+
       const response = await axiosConfig.get(
         API_ENDPOINTS.DOWNLOAD_TRANSPORT_EXCEL,
         {
@@ -219,6 +234,9 @@ const TransportList = () => {
       }
       if (filterMonth) {
         filename += `_${filterMonth}`;
+      }
+      if (filterInvoiceStatus) {
+        filename += `_${filterInvoiceStatus.replace(/\s+/g, "_")}`;
       }
       filename += ".xlsx";
       link.setAttribute("download", filename);
@@ -253,7 +271,11 @@ const TransportList = () => {
         setOpenAddTransportModal(false);
         setOpenEditTransportModal(false);
         setSelectedTransport(null);
-        fetchTransportDetails(filterVehicleId, filterMonth);
+        fetchTransportDetails(
+          filterVehicleId,
+          filterMonth,
+          filterInvoiceStatus
+        );
       }
     } catch (error) {
       toast.error(
@@ -281,7 +303,7 @@ const TransportList = () => {
         API_ENDPOINTS.DELETE_TRANSPORT(transportToDelete.id)
       );
       toast.success("Transport record deleted successfully!");
-      fetchTransportDetails(filterVehicleId, filterMonth);
+      fetchTransportDetails(filterVehicleId, filterMonth, filterInvoiceStatus);
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to delete transport record."
@@ -397,10 +419,46 @@ const TransportList = () => {
     return pageNumbers;
   };
 
+  // Calculate stats for current month or filtered month
+  let transportsToSum = filteredTransport;
+  if (!filterMonth) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    transportsToSum = filteredTransport.filter((t) => {
+      if (!t.loadingDate) return false;
+      const date = new Date(t.loadingDate);
+      return (
+        !isNaN(date) &&
+        date.getFullYear() === currentYear &&
+        date.getMonth() + 1 === currentMonth
+      );
+    });
+  }
+
+  // Calculate totals for the current month (or filtered month)
+  const totalAgreed = transportsToSum
+    .reduce((sum, item) => sum + (parseFloat(item.agreedAmount) || 0), 0)
+    .toFixed(2);
+
+  const totalReceived = transportsToSum
+    .reduce(
+      (sum, item) =>
+        sum +
+        (parseFloat(item.advanceReceived) || 0) +
+        (parseFloat(item.balanceReceived) || 0),
+      0
+    )
+    .toFixed(2);
+
+  const totalHeldUp = transportsToSum
+    .reduce((sum, item) => sum + (parseFloat(item.heldUp) || 0), 0)
+    .toFixed(2);
+
   return (
     <Dashboard activeMenu="Transport">
       <div className="my-5 mx-auto">
-        {/* Header Section */}
+        {/* Header Section - NO CHANGES */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -427,7 +485,7 @@ const TransportList = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Bar - NO CHANGES */}
         <div className="relative mb-6">
           <Search
             className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -442,7 +500,7 @@ const TransportList = () => {
           />
         </div>
 
-        {/* Filter Panel */}
+        {/* Filter Panel - Updated with Invoice Status Filter */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -458,7 +516,9 @@ const TransportList = () => {
                 Clear All
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {" "}
+              {/* Changed to 4 columns */}
               {/* Vehicle Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -494,6 +554,22 @@ const TransportList = () => {
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
+              {/* Invoice Status Filter - NEW */}
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <FileText className="w-4 h-4" />
+                  Invoice Status
+                </label>
+                <select
+                  value={filterInvoiceStatus}
+                  onChange={(e) => setFilterInvoiceStatus(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent bg-white cursor-pointer"
+                >
+                  <option value="">All Status</option>
+                  <option value="Not Invoiced">Not Invoiced</option>
+                  <option value="Invoiced">Invoiced</option>
+                </select>
+              </div>
               {/* Action Buttons */}
               <div className="flex flex-col justify-end space-y-2">
                 <label className="text-sm font-medium text-gray-700 opacity-0">
@@ -517,8 +593,8 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
-            {/* Active Filters Display */}
-            {(filterVehicleId || filterMonth) && (
+            {/* Active Filters Display - Updated with Invoice Status */}
+            {(filterVehicleId || filterMonth || filterInvoiceStatus) && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-sm text-gray-600 mb-2">Active Filters:</p>
                 <div className="flex flex-wrap gap-2">
@@ -559,21 +635,37 @@ const TransportList = () => {
                       </button>
                     </span>
                   )}
+                  {filterInvoiceStatus && (
+                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 text-xs px-3 py-1.5 rounded-full">
+                      <FileText size={12} />
+                      Invoice: {filterInvoiceStatus}
+                      <button
+                        onClick={() => setFilterInvoiceStatus("")}
+                        className="ml-1 text-green-600 hover:text-green-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Stats Summary */}
-        {filteredTransport.length > 0 && (
+        {/* Stats Summary - NO CHANGES */}
+        {transportsToSum.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {/* Total Records Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Records</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {filteredTransport.length}
+                    {transportsToSum.length}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -581,68 +673,61 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
+            {/* Total Agreed Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Total Agreed</p>
+                  <p className="text-sm text-gray-600">Total Amount</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {filteredTransport
-                      .reduce(
-                        (sum, item) =>
-                          sum + (parseFloat(item.agreedAmount) || 0),
-                        0
-                      )
-                      .toFixed(2)}
+                    LKR {totalAgreed}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <span className="text-purple-600 font-bold">$</span>
+                  <DollarSign className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </div>
+            {/* Total Received Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Received</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {filteredTransport
-                      .reduce(
-                        (sum, item) =>
-                          sum +
-                          (parseFloat(item.advanceReceived) || 0) +
-                          (parseFloat(item.balanceReceived) || 0),
-                        0
-                      )
-                      .toFixed(2)}
+                  <p className="text-2xl font-bold text-green-600">
+                    LKR {totalReceived}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <span className="text-green-600 font-bold">$</span>
+                  <DollarSign className="w-5 h-5 text-green-600" />
                 </div>
               </div>
             </div>
+            {/* Total Held Up Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Held Up</p>
-                  <p className="text-2xl font-bold text-gray-800">
-                    {filteredTransport
-                      .reduce(
-                        (sum, item) => sum + (parseFloat(item.heldUp) || 0),
-                        0
-                      )
-                      .toFixed(2)}
+                  <p className="text-2xl font-bold text-red-600">
+                    LKR {totalHeldUp}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-                  <span className="text-red-600 font-bold">$</span>
+                  <DollarSign className="w-5 h-5 text-red-600" />
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Quick Actions Bar */}
+        {/* Quick Actions Bar - Updated text to include invoice filter */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
           <div>
             <p className="text-sm text-gray-600">
@@ -650,7 +735,7 @@ const TransportList = () => {
               <span className="font-semibold">{currentItems.length}</span> of{" "}
               <span className="font-semibold">{filteredTransport.length}</span>{" "}
               records
-              {(filterVehicleId || filterMonth) && (
+              {(filterVehicleId || filterMonth || filterInvoiceStatus) && (
                 <span className="text-[#4F46E5] ml-2">(Filtered)</span>
               )}
             </p>
@@ -683,7 +768,7 @@ const TransportList = () => {
           </div>
         </div>
 
-        {/* Transport Table */}
+        {/* Transport Table - NO CHANGES */}
         <div className="relative">
           <TransportTable
             transportRecords={currentItems}
@@ -697,7 +782,7 @@ const TransportList = () => {
           />
         </div>
 
-        {/* Pagination Controls */}
+        {/* Pagination Controls - NO CHANGES */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
             <div className="text-sm text-gray-600">
@@ -746,7 +831,7 @@ const TransportList = () => {
           </div>
         )}
 
-        {/* Add Transport Modal */}
+        {/* Add Transport Modal - NO CHANGES */}
         <Modal
           isOpen={openAddTransportModal}
           onClose={() => setOpenAddTransportModal(false)}
@@ -760,7 +845,7 @@ const TransportList = () => {
           />
         </Modal>
 
-        {/* Edit Transport Modal */}
+        {/* Edit Transport Modal - NO CHANGES */}
         <Modal
           isOpen={openEditTransportModal}
           onClose={() => {

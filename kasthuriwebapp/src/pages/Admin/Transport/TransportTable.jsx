@@ -1,4 +1,4 @@
-// Updated TransportTable.jsx with scrollbar
+// Updated TransportTable.jsx with ID column
 import React from "react";
 import {
   Edit2,
@@ -15,6 +15,7 @@ import {
   XCircle,
   ChevronRight,
   ChevronDown,
+  Hash,
 } from "lucide-react";
 
 const getPaymentStatusLabel = (status) => {
@@ -105,6 +106,12 @@ const TransportTable = ({
                     className="form-checkbox rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
                   />
                 </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[80px] bg-gray-50">
+                  <div className="flex items-center">
+                    <Hash className="w-3 h-3 mr-1" />
+                    ID
+                  </div>
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[150px] bg-gray-50">
                   Client
                 </th>
@@ -135,7 +142,7 @@ const TransportTable = ({
               {transportRecords.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="9"
+                    colSpan="10"
                     className="px-6 py-8 text-center text-gray-500"
                   >
                     <Truck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -170,6 +177,14 @@ const TransportTable = ({
                             record.invoiceStatus !== "Not Invoiced"
                           }
                         />
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-600 font-medium">
+                          <div className="flex items-center">
+                            <Hash className="w-3 h-3 mr-1 text-gray-400" />
+                            {record.id}
+                          </div>
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center text-sm text-gray-900">
@@ -364,9 +379,15 @@ const TransportTable = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
-                          <h4 className="font-medium text-gray-900 truncate">
-                            {record.clientName}
-                          </h4>
+                          <div>
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {record.clientName}
+                            </h4>
+                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <Hash className="w-3 h-3 mr-1" />
+                              ID: {record.id}
+                            </div>
+                          </div>
                         </div>
                         <div className="mt-1 text-sm text-gray-500">
                           <div className="flex items-center">

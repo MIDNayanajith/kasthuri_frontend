@@ -14,6 +14,8 @@ import ExVehiclesList from "./pages/Admin/ExVehicles/ExVehiclesList";
 import InvoiceList from "./pages/Admin/Finance/Invoice/InvoiceList";
 import PaymentsList from "./pages/Admin/Finance/Payments/PaymentsList";
 import AdvanceList from "./pages/Admin/Finance/Advance/AdvanceList";
+import FuelList from "./pages/Admin/Finance/Fuel/FuelList";
+import TireMaintenanceList from "./pages/Admin/Maintenance/TireMaintenace/TireMaintenaceList";
 
 const App = () => {
   return (
@@ -26,13 +28,15 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/dashboard" element={<AdminHome />} />
             <Route path="/users" element={<UserList />} />
-            <Route path="/maintenance" element={<MaintenanceList />} />
+            <Route path="/other_maintenance" element={<MaintenanceList />} />
+            <Route path="/tire_maintenance" element={<TireMaintenanceList />} />
             <Route path="/attendance" element={<AttendanceList />} />
             <Route path="/ownvehicles" element={<OwnVehiclesList />} />
             <Route path="/exvehicles" element={<ExVehiclesList />} />
             <Route path="/invoice" element={<InvoiceList />} />
             <Route path="/payments" element={<PaymentsList />} />
             <Route path="/advance" element={<AdvanceList />} />
+            <Route path="/fuel" element={<FuelList />} />
             <Route path="/transports" element={<TransportList />} />
             <Route path="/drivers" element={<DriversList />} />
             {/* Add more routes here for admin dashboard, etc. */}

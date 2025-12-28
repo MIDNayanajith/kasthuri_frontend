@@ -4,6 +4,7 @@ import Input from "../../../../components/Input";
 import { LoaderCircle } from "lucide-react";
 import axiosConfig from "../../../../Utill/axiosConfig";
 import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
+
 const PaymentForm = ({
   onAddPayment,
   initialPaymentData,
@@ -27,6 +28,7 @@ const PaymentForm = ({
   const [loading, setLoading] = useState(false);
   const [fetchingAdvances, setFetchingAdvances] = useState(false);
   const [error, setError] = useState("");
+
   useEffect(() => {
     if (isEditing && initialPaymentData) {
       setPayment({
@@ -57,6 +59,7 @@ const PaymentForm = ({
       });
     }
   }, [isEditing, initialPaymentData]);
+
   useEffect(() => {
     const calculateNetPay = () => {
       const base = parseFloat(payment.baseAmount) || 0;
@@ -66,9 +69,11 @@ const PaymentForm = ({
     };
     calculateNetPay();
   }, [payment.baseAmount, payment.deductions, payment.advancesDeducted]);
+
   useEffect(() => {
     const fetchPendingAdvances = async () => {
       if (
+        !isEditing &&
         payment.recipientType &&
         payment.recipientId &&
         payment.periodMonth &&
@@ -110,14 +115,17 @@ const PaymentForm = ({
     };
     fetchPendingAdvances();
   }, [
+    isEditing,
     payment.recipientType,
     payment.recipientId,
     payment.periodMonth,
     payment.periodYear,
   ]);
+
   const handleChange = (key, value) => {
     setPayment({ ...payment, [key]: value });
   };
+
   const validateForm = () => {
     if (!payment.recipientType) {
       setError("Recipient type is required");
@@ -141,6 +149,7 @@ const PaymentForm = ({
     }
     return true;
   };
+
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setError("");
@@ -170,15 +179,18 @@ const PaymentForm = ({
       setLoading(false);
     }
   };
+
   const recipientOptions =
     payment.recipientType === "Driver"
       ? drivers.map((d) => ({ value: d.id, label: d.name }))
       : users.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "Select Recipient" });
+
   const statusOptions = [
     { value: "Pending", label: "Pending" },
     { value: "Paid", label: "Paid" },
   ];
+
   return (
     <div className="p-4 space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,6 +208,7 @@ const PaymentForm = ({
             { value: "Driver", label: "Driver" },
             { value: "User", label: "User" },
           ]}
+          disabled={isEditing}
         />
         <Input
           isSelect={true}
@@ -213,6 +226,7 @@ const PaymentForm = ({
             </>
           }
           options={recipientOptions}
+          disabled={isEditing}
         />
         <Input
           value={payment.periodMonth}
@@ -225,6 +239,7 @@ const PaymentForm = ({
           }
           placeholder="Enter month (1-12)"
           type="number"
+          disabled={isEditing}
         />
         <Input
           value={payment.periodYear}
@@ -237,6 +252,7 @@ const PaymentForm = ({
           }
           placeholder="Enter year"
           type="number"
+          disabled={isEditing}
         />
         <Input
           value={payment.baseAmount}
@@ -353,4 +369,5 @@ const PaymentForm = ({
     </div>
   );
 };
+
 export default PaymentForm;

@@ -240,8 +240,17 @@ const PaymentsList = () => {
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
   // Calculate stats
-  const totalAmount = filteredPayments
-    .reduce((sum, p) => sum + p.netPay, 0)
+  let paymentsToSum = filteredPayments;
+  if (!filterMonth) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    paymentsToSum = filteredPayments.filter(
+      (p) => p.periodYear === currentYear && p.periodMonth === currentMonth
+    );
+  }
+  const totalAmount = paymentsToSum
+    .reduce((sum, p) => sum + (p.netPay || 0), 0)
     .toFixed(2);
   return (
     <Dashboard activeMenu="Finance">

@@ -51,6 +51,7 @@ export const SIDE_BAR_DATA = [
       { label: "Invoice", path: "/invoice" },
       { label: "Payments", path: "/payments" },
       { label: "Advance", path: "/advance" },
+      { label: "Fuel", path: "/fuel" },
     ],
   },
   {
@@ -63,7 +64,10 @@ export const SIDE_BAR_DATA = [
     id: "07",
     label: "Maintenance",
     icon: Wrench,
-    path: "/maintenance",
+    children: [
+      { label: "Tire Maintenance", path: "/tire_maintenance" },
+      { label: "Other Maintenance", path: "/other_maintenance" },
+    ],
   },
   {
     id: "08",

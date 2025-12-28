@@ -238,7 +238,22 @@ const AdvanceList = () => {
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
   // Calculate stats
-  const totalAmount = filteredAdvances
+  let advancesToSum = filteredAdvances;
+  if (!filterMonth) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    advancesToSum = filteredAdvances.filter((a) => {
+      if (!a.advanceDate) return false;
+      const date = new Date(a.advanceDate);
+      return (
+        !isNaN(date) &&
+        date.getFullYear() === currentYear &&
+        date.getMonth() + 1 === currentMonth
+      );
+    });
+  }
+  const totalAmount = advancesToSum
     .reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0)
     .toFixed(2);
   return (

@@ -1,14 +1,9 @@
-// Corrected MenuBar.jsx (fixed Sidebar import ONLY)
-
-// Path: E:\Projects\SpringBoot Projets\Kasthuri bussiness management\frontend\kasthuri_frontend\kasthuriwebapp\src\components\Admin\MenuBar.jsx
-
+// MenuBar.jsx
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Menu, X } from "lucide-react";
 import { assets } from "../../assets/assets";
-
-// ✅ IMPORTANT: Sidebar import FIX (this was missing)
 import Sidebar from "./Sidebar";
 
 const MenuBar = ({ activeMenu }) => {
@@ -45,7 +40,7 @@ const MenuBar = ({ activeMenu }) => {
       <div className="flex items-center gap-5">
         <button
           onClick={() => setOpenSideMenu(!openSideMenu)}
-          className="block lg:hidden text-black hover:bg-gray-100 p-1 rounded transition-colors"
+          className="block lg:hidden text-black hover:bg-gray-100 p-1 rounded transition-colors cursor-pointer"
         >
           {openSideMenu ? (
             <X className="text-2xl" />
@@ -57,7 +52,7 @@ const MenuBar = ({ activeMenu }) => {
         <div className="flex items-center gap-2">
           <img src={assets.logo} alt="Logo" className="h-10 w-10" />
           <span className="text-lg font-medium text-black truncate">
-            Kasthuri Enterprises{" "}
+            Kasthuri Enterprises
           </span>
         </div>
       </div>
@@ -66,13 +61,24 @@ const MenuBar = ({ activeMenu }) => {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-800 focus:ring-offset-2"
+          className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-800 focus:ring-offset-2 cursor-pointer"
+          title={user?.username || "User"}
         >
-          <img
-            src={user?.profileImageUrl || assets.defaultAvatar}
-            alt="User"
-            className="w-full h-full rounded-full object-cover"
-          />
+          {user?.profileImg ? (
+            <img
+              src={user.profileImg}
+              alt={user?.username || "User"}
+              className="w-full h-full rounded-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = assets.defaultAvatar;
+              }}
+            />
+          ) : (
+            <div className="w-full h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-sm">
+              {user?.username?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+          )}
         </button>
 
         {showDropdown && (
@@ -80,18 +86,33 @@ const MenuBar = ({ activeMenu }) => {
             {/* USER INFO */}
             <div className="px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full">
-                  <img
-                    src={user?.profileImageUrl || assets.defaultAvatar}
-                    alt="User"
-                    className="w-full h-full rounded-full object-cover"
-                  />
+                <div className="flex items-center justify-center w-8 h-8 bg-gray-100 rounded-full overflow-hidden">
+                  {user?.profileImg ? (
+                    <img
+                      src={user.profileImg}
+                      alt={user?.username || "User"}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = assets.defaultAvatar;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold text-xs">
+                      {user?.username?.charAt(0)?.toUpperCase() || "U"}
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">
-                    {user.fullName}
+                    {user?.username || "User"}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email || "No email"}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {user?.role || "USER"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -100,7 +121,7 @@ const MenuBar = ({ activeMenu }) => {
             <div className="py-1">
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-gray-500" />
                 <span>Logout</span>
@@ -110,9 +131,7 @@ const MenuBar = ({ activeMenu }) => {
         )}
       </div>
 
-      {/* ============================= */}
-      {/*       MOBILE SIDE MENU        */}
-      {/* ============================= */}
+      {/* MOBILE SIDE MENU */}
       {openSideMenu && (
         <div className="fixed left-0 right-0 bg-white border-b border-gray-200 lg:hidden z-20 top-[73px]">
           <Sidebar activeMenu={activeMenu} />
