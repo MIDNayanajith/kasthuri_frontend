@@ -1,4 +1,4 @@
-// ExVehiclesList.jsx
+// ExVehiclesList.jsx - Updated with consistent month/year filter like transport
 import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Calendar,
   DollarSign,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import ExVehiclesTable from "./ExVehiclesTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -21,7 +22,6 @@ import toast from "react-hot-toast";
 import Modal from "../../../components/Admin/Modal";
 import ExVehicleForm from "./ExVehicleForm";
 import { AppContext } from "../../../context/AppContext";
-
 const ExVehiclesList = () => {
   useUser();
   const { user } = useContext(AppContext);
@@ -38,7 +38,6 @@ const ExVehiclesList = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
   const fetchVehicleDetails = async (regNumber = null, month = null) => {
     if (loading) return;
     setLoading(true);
@@ -61,11 +60,9 @@ const ExVehiclesList = () => {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     fetchVehicleDetails();
   }, []);
-
   useEffect(() => {
     if (searchTerm) {
       const filtered = vehicleData.filter(
@@ -79,7 +76,6 @@ const ExVehiclesList = () => {
       setFilteredVehicles(vehicleData);
     }
   }, [searchTerm, vehicleData]);
-
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredVehicles.slice(
@@ -87,34 +83,33 @@ const ExVehiclesList = () => {
     indexOfLastItem
   );
   const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
-
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
-
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
-
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
-
   const handleApplyFilter = () => {
-    fetchVehicleDetails(filterRegNumber, filterMonth);
+    const month = filterMonth || null;
+    if (month && !/^\d{4}-\d{2}$/.test(month)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
+    fetchVehicleDetails(filterRegNumber, month);
   };
-
   const handleResetFilter = () => {
     setFilterRegNumber("");
     setFilterMonth("");
     setSearchTerm("");
     fetchVehicleDetails();
   };
-
   const handleDownloadExcel = async () => {
     try {
       const params = {};
@@ -140,7 +135,6 @@ const ExVehiclesList = () => {
       toast.error("Failed to download Excel");
     }
   };
-
   const handleAddVehicle = async (vehicleData, isEditing = false) => {
     try {
       let response;
@@ -174,7 +168,6 @@ const ExVehiclesList = () => {
       throw error;
     }
   };
-
   const handleMakePayment = async (vehicleId, paymentAmount) => {
     try {
       const response = await axiosConfig.post(
@@ -192,19 +185,12 @@ const ExVehiclesList = () => {
       throw error;
     }
   };
-
   const handleEditVehicle = (vehicleToEdit) => {
     setSelectedVehicle(vehicleToEdit);
     setOpenEditVehicleModal(true);
   };
-
-  const handleDeleteVehicle = async (vehicleToDelete) => {
-    if (
-      !window.confirm(
-        `Delete vehicle "${vehicleToDelete.regNumber}"? This action cannot be undone.`
-      )
-    )
-      return;
+  // Helper function for actual deletion
+  const performDelete = async (vehicleToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_EX_VEHICLE(vehicleToDelete.id)
@@ -215,7 +201,61 @@ const ExVehiclesList = () => {
       toast.error(error.response?.data?.message || "Failed to delete vehicle.");
     }
   };
-
+  const handleDeleteVehicle = async (vehicleToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete vehicle "{vehicleToDelete.regNumber}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This action cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(vehicleToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
@@ -235,7 +275,18 @@ const ExVehiclesList = () => {
     }
     return pageNumbers;
   };
-
+  // Function to get current month in YYYY-MM format
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+  // Format month as YYYY/MM for display
+  const formatDisplayMonth = (monthStr) => {
+    if (!monthStr) return "";
+    return monthStr.replace("-", "/");
+  };
   // Calculate stats for current month or filtered month
   let vehiclesToSum = filteredVehicles;
   if (!filterMonth) {
@@ -252,7 +303,6 @@ const ExVehiclesList = () => {
       );
     });
   }
-
   const totalHire = vehiclesToSum
     .reduce((sum, v) => sum + (parseFloat(v.hireRate) || 0), 0)
     .toFixed(2);
@@ -262,7 +312,7 @@ const ExVehiclesList = () => {
   const totalBalance = vehiclesToSum
     .reduce((sum, v) => sum + (parseFloat(v.balance) || 0), 0)
     .toFixed(2);
-
+  const displayMonth = formatDisplayMonth(filterMonth || getCurrentMonth());
   return (
     <Dashboard activeMenu="Ex Vehicles">
       <div className="my-5 mx-auto">
@@ -294,7 +344,6 @@ const ExVehiclesList = () => {
             </button>
           </div>
         </div>
-
         {/* Search Bar */}
         <div className="relative mb-6">
           <Search
@@ -309,7 +358,6 @@ const ExVehiclesList = () => {
             className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
-
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -345,31 +393,38 @@ const ExVehiclesList = () => {
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleApplyFilter}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md"
-              >
-                Apply Filters
-              </button>
-              <button
-                onClick={handleDownloadExcel}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
-                title="Download Excel Report"
-              >
-                <Download size={18} />
-                <span className="hidden sm:inline">Excel</span>
-              </button>
+              {/* Action Buttons */}
+              <div className="flex flex-col justify-end space-y-2">
+                <label className="text-sm font-medium text-gray-700 opacity-0">
+                  Actions
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleApplyFilter}
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md"
+                  >
+                    Apply Filters
+                  </button>
+                  <button
+                    onClick={handleDownloadExcel}
+                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
+                    title="Download Excel Report"
+                  >
+                    <Download size={18} />
+                    <span className="hidden sm:inline">Excel</span>
+                  </button>
+                </div>
+              </div>
             </div>
             {/* Active Filters Display */}
             {(filterRegNumber || filterMonth) && (
@@ -405,7 +460,6 @@ const ExVehiclesList = () => {
             )}
           </div>
         )}
-
         {/* Stats Summary */}
         {filteredVehicles.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -431,6 +485,9 @@ const ExVehiclesList = () => {
                   <p className="text-2xl font-bold text-gray-800">
                     LKR {totalHire}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    For {displayMonth}
+                  </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-purple-600" />
@@ -444,6 +501,9 @@ const ExVehiclesList = () => {
                   <p className="text-sm text-gray-600">Total Paid</p>
                   <p className="text-2xl font-bold text-green-600">
                     LKR {totalPaid}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    For {displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -459,6 +519,9 @@ const ExVehiclesList = () => {
                   <p className="text-2xl font-bold text-red-600">
                     LKR {totalBalance}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    For {displayMonth}
+                  </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                   <DollarSign className="w-5 h-5 text-red-600" />
@@ -467,7 +530,6 @@ const ExVehiclesList = () => {
             </div>
           </div>
         )}
-
         {/* Quick Actions Bar */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -492,7 +554,6 @@ const ExVehiclesList = () => {
             )}
           </div>
         </div>
-
         {/* ExVehicles Table */}
         <ExVehiclesTable
           vehicles={currentItems}
@@ -501,7 +562,6 @@ const ExVehiclesList = () => {
           loading={loading}
           isAdmin={isAdmin}
         />
-
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
@@ -541,7 +601,6 @@ const ExVehiclesList = () => {
             </div>
           </div>
         )}
-
         {/* Add Vehicle Modal */}
         <Modal
           isOpen={openAddVehicleModal}
@@ -550,7 +609,6 @@ const ExVehiclesList = () => {
         >
           <ExVehicleForm onAddVehicle={handleAddVehicle} isEditing={false} />
         </Modal>
-
         {/* Edit Vehicle Modal */}
         <Modal
           isOpen={openEditVehicleModal}
@@ -571,5 +629,4 @@ const ExVehiclesList = () => {
     </Dashboard>
   );
 };
-
 export default ExVehiclesList;

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   DollarSign,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import TransportTable from "./TransportTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -101,9 +102,11 @@ const TransportList = () => {
       if (ownVehiclesResponse.status === 200) {
         setOwnVehicleData(ownVehiclesResponse.data);
       }
+
       if (exVehiclesResponse.status === 200) {
         setExVehicleData(exVehiclesResponse.data);
       }
+
       if (driversResponse.status === 200) {
         setDriverData(driversResponse.data);
       }
@@ -172,6 +175,7 @@ const TransportList = () => {
   const handleApplyFilter = () => {
     let ownVehicleId = null;
     let externalVehicleId = null;
+
     if (filterVehicleId) {
       const [vehType, idStr] = filterVehicleId.split(":");
       const id = parseInt(idStr, 10);
@@ -181,10 +185,17 @@ const TransportList = () => {
         externalVehicleId = id;
       }
     }
+
+    const month = filterMonth || null;
+    if (month && !/^\d{4}-\d{2}$/.test(month)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
+
     fetchTransportDetails(
       ownVehicleId,
       externalVehicleId,
-      filterMonth,
+      month,
       filterInvoiceStatus
     );
   };
@@ -202,12 +213,14 @@ const TransportList = () => {
       const params = {};
       let ownVehicleId = null;
       let externalVehicleId = null;
+
       if (filterVehicleId) {
         const [vehType, idStr] = filterVehicleId.split(":");
         const id = parseInt(idStr, 10);
         if (vehType === "own") ownVehicleId = id;
         else if (vehType === "external") externalVehicleId = id;
       }
+
       if (ownVehicleId) params.ownVehicleId = ownVehicleId;
       if (externalVehicleId) params.externalVehicleId = externalVehicleId;
       if (filterMonth) params.month = filterMonth;
@@ -220,6 +233,7 @@ const TransportList = () => {
           responseType: "blob",
         }
       );
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -264,6 +278,7 @@ const TransportList = () => {
           transportData
         );
       }
+
       if (response.status === 200 || response.status === 201) {
         toast.success(
           `Transport record ${isEditing ? "updated" : "added"} successfully!`
@@ -291,13 +306,8 @@ const TransportList = () => {
     setOpenEditTransportModal(true);
   };
 
-  const handleDeleteTransport = async (transportToDelete) => {
-    if (
-      !window.confirm(
-        `Delete transport record for "${transportToDelete.clientName}"? This action cannot be undone.`
-      )
-    )
-      return;
+  // Helper function for actual deletion
+  const performDelete = async (transportToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_TRANSPORT(transportToDelete.id)
@@ -309,6 +319,62 @@ const TransportList = () => {
         error.response?.data?.message || "Failed to delete transport record."
       );
     }
+  };
+
+  const handleDeleteTransport = async (transportToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete transport record for "{transportToDelete.clientName}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(transportToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
   };
 
   const handleSelectTransport = (id, isSelected) => {
@@ -336,21 +402,72 @@ const TransportList = () => {
       toast.error("Please select at least one transport to invoice.");
       return;
     }
+
     const selectedTransports = filteredTransport.filter((t) =>
       selectedTransportIds.includes(t.id)
     );
     const clientNames = new Set(selectedTransports.map((t) => t.clientName));
+
     if (clientNames.size > 1) {
       toast.error("All selected transports must have the same client name");
       return;
     }
-    if (
-      !window.confirm(
-        `Generate invoice for ${selectedTransportIds.length} selected transports?`
-      )
-    ) {
-      return;
-    }
+
+    // Show confirmation toast instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-[#8A75EB]`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-[#F5EFFF] flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[#8A75EB]" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Generate Invoice
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Generate invoice for {selectedTransportIds.length} selected
+                  transport(s)?
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-[#8A75EB] to-[#A594F9] hover:from-[#7A65DB] hover:to-[#9584E9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#8A75EB] transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performInvoiceGeneration();
+                    }}
+                  >
+                    Generate
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity,
+      }
+    );
+  };
+
+  // Helper function for actual invoice generation
+  const performInvoiceGeneration = async () => {
     try {
       setLoading(true);
       const request = {
@@ -419,6 +536,20 @@ const TransportList = () => {
     return pageNumbers;
   };
 
+  // Function to get current month in YYYY-MM format
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  // Format month as YYYY/MM for display
+  const formatDisplayMonth = (monthStr) => {
+    if (!monthStr) return "";
+    return monthStr.replace("-", "/");
+  };
+
   // Calculate stats for current month or filtered month
   let transportsToSum = filteredTransport;
   if (!filterMonth) {
@@ -440,7 +571,6 @@ const TransportList = () => {
   const totalAgreed = transportsToSum
     .reduce((sum, item) => sum + (parseFloat(item.agreedAmount) || 0), 0)
     .toFixed(2);
-
   const totalReceived = transportsToSum
     .reduce(
       (sum, item) =>
@@ -450,10 +580,11 @@ const TransportList = () => {
       0
     )
     .toFixed(2);
-
   const totalHeldUp = transportsToSum
     .reduce((sum, item) => sum + (parseFloat(item.heldUp) || 0), 0)
     .toFixed(2);
+
+  const displayMonth = formatDisplayMonth(filterMonth || getCurrentMonth());
 
   return (
     <Dashboard activeMenu="Transport">
@@ -517,8 +648,6 @@ const TransportList = () => {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              {" "}
-              {/* Changed to 4 columns */}
               {/* Vehicle Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -541,19 +670,22 @@ const TransportList = () => {
                   ))}
                 </select>
               </div>
+
               {/* Month Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Select Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
+
               {/* Invoice Status Filter - NEW */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -570,6 +702,7 @@ const TransportList = () => {
                   <option value="Invoiced">Invoiced</option>
                 </select>
               </div>
+
               {/* Action Buttons */}
               <div className="flex flex-col justify-end space-y-2">
                 <label className="text-sm font-medium text-gray-700 opacity-0">
@@ -593,6 +726,7 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
+
             {/* Active Filters Display - Updated with Invoice Status */}
             {(filterVehicleId || filterMonth || filterInvoiceStatus) && (
               <div className="mt-4 pt-4 border-t border-gray-100">
@@ -654,7 +788,7 @@ const TransportList = () => {
         )}
 
         {/* Stats Summary - NO CHANGES */}
-        {transportsToSum.length > 0 && (
+        {filteredTransport.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {/* Total Records Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
@@ -662,10 +796,7 @@ const TransportList = () => {
                 <div>
                   <p className="text-sm text-gray-600">Total Records</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {transportsToSum.length}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
+                    {filteredTransport.length}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -673,6 +804,7 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
+
             {/* Total Agreed Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
@@ -682,7 +814,7 @@ const TransportList = () => {
                     LKR {totalAgreed}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
+                    For {displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
@@ -690,6 +822,7 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
+
             {/* Total Received Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
@@ -699,7 +832,7 @@ const TransportList = () => {
                     LKR {totalReceived}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
+                    For {displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
@@ -707,6 +840,7 @@ const TransportList = () => {
                 </div>
               </div>
             </div>
+
             {/* Total Held Up Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
@@ -716,7 +850,7 @@ const TransportList = () => {
                     LKR {totalHeldUp}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {filterMonth ? `For ${filterMonth}` : "Current Month"}
+                    For {displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
@@ -799,7 +933,6 @@ const TransportList = () => {
               >
                 <ChevronLeft size={16} />
               </button>
-
               {getPageNumbers().map((page) => (
                 <button
                   key={page}
@@ -813,7 +946,6 @@ const TransportList = () => {
                   {page}
                 </button>
               ))}
-
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
@@ -823,7 +955,6 @@ const TransportList = () => {
                 <ChevronRight size={16} />
               </button>
             </div>
-
             <div className="flex items-center text-sm text-gray-600">
               <span>Items per page:</span>
               <span className="ml-2 font-medium">{itemsPerPage}</span>

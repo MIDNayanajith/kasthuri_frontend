@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
-import { Plus, Users, Search } from "lucide-react";
+import { Plus, Users, Search, Trash2 } from "lucide-react"; // Added Trash2 icon
 import UsersTable from "./UsersTable";
 import axiosConfig from "../../../Utill/axiosConfig";
 import { API_ENDPOINTS } from "../../../Utill/apiEndPoints";
@@ -89,9 +89,8 @@ const UserList = () => {
     setOpenEditUserModal(true);
   };
 
-  const handleDeleteUser = async (userToDelete) => {
-    if (!window.confirm(`Delete user "${userToDelete.username}"?`)) return;
-
+  // Helper function for actual deletion
+  const performDelete = async (userToDelete) => {
     try {
       await axiosConfig.delete(API_ENDPOINTS.DELETE_USER(userToDelete.id));
       toast.success("User deleted successfully!");
@@ -99,6 +98,62 @@ const UserList = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to delete user.");
     }
+  };
+
+  const handleDeleteUser = async (userToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete user "{userToDelete.username}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(userToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
   };
 
   return (

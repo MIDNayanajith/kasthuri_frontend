@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import Input from "../../../components/Input";
 import { LoaderCircle } from "lucide-react";
-
 const TransportForm = ({
   onAddTransport,
   initialTransportData,
@@ -30,7 +29,6 @@ const TransportForm = ({
   const [vehicleType, setVehicleType] = useState("own"); // 'own' or 'ex'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
   useEffect(() => {
     if (isEditing && initialTransportData) {
       const isOwn = !!initialTransportData.ownVehicleId;
@@ -72,11 +70,9 @@ const TransportForm = ({
       setVehicleType("own");
     }
   }, [isEditing, initialTransportData]);
-
   const handleChange = (key, value) => {
     setTransport({ ...transport, [key]: value });
   };
-
   const validateForm = () => {
     if (!transport.clientName.trim()) {
       setError("Client name is required");
@@ -124,7 +120,6 @@ const TransportForm = ({
     }
     return true;
   };
-
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setError("");
@@ -161,34 +156,29 @@ const TransportForm = ({
       setLoading(false);
     }
   };
-
   const ownVehicleOptions = ownVehicles.map((v) => ({
     value: v.id,
     label: v.regNumber,
   }));
   ownVehicleOptions.unshift({ value: "", label: "Select Own Vehicle" });
-
   const exVehicleOptions = exVehicles.map((v) => ({
     value: v.id,
     label: v.regNumber,
   }));
   exVehicleOptions.unshift({ value: "", label: "Select External Vehicle" });
-
   const driverOptions = drivers.map((d) => ({
     value: d.id,
     label: d.name || `Driver ${d.id}`, // Assume driver has name
   }));
   driverOptions.unshift({ value: "", label: "Select Driver (Optional)" });
-
   const tripStatusOptions = [
     { value: 1, label: "Pending" },
     { value: 2, label: "Completed" },
     { value: 3, label: "Cancelled" },
   ];
-
   return (
     <div className="p-4 space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-[60vh]">
         <Input
           value={transport.clientName}
           onChange={({ target }) => handleChange("clientName", target.value)}
@@ -441,5 +431,4 @@ const TransportForm = ({
     </div>
   );
 };
-
 export default TransportForm;

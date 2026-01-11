@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
-import { Plus, Users, Search, Truck } from "lucide-react";
+import { Plus, Users, Search, Truck, Trash2 } from "lucide-react"; // Added Trash2
 import OwnVehiclesTable from "./OwnVehiclesTable"; // Adjust path if needed
 import axiosConfig from "../../../Utill/axiosConfig";
 import { API_ENDPOINTS } from "../../../Utill/apiEndPoints";
@@ -106,13 +106,8 @@ const OwnVehiclesList = () => {
     setOpenEditVehicleModal(true);
   };
 
-  const handleDeleteVehicle = async (vehicleToDelete) => {
-    if (
-      !window.confirm(
-        `Delete vehicle "${vehicleToDelete.regNumber}"? This action cannot be undone.`
-      )
-    )
-      return;
+  // Helper function for actual deletion
+  const performDelete = async (vehicleToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_OWN_VEHICLE(vehicleToDelete.id)
@@ -122,6 +117,62 @@ const OwnVehiclesList = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to delete vehicle.");
     }
+  };
+
+  const handleDeleteVehicle = async (vehicleToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete vehicle "{vehicleToDelete.regNumber}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This action cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(vehicleToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
   };
 
   return (

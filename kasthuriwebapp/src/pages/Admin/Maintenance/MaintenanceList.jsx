@@ -11,6 +11,8 @@ import {
   RotateCcw,
   Calendar,
   Truck,
+  DollarSign,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import MaintenanceTable from "./MaintenanceTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -24,7 +26,6 @@ const MaintenanceList = () => {
   useUser();
   const { user } = useContext(AppContext);
   const isAdmin = user?.role === "ADMIN";
-
   const [loading, setLoading] = useState(false);
   const [maintenanceData, setMaintenanceData] = useState([]);
   const [vehicleData, setVehicleData] = useState([]);
@@ -45,14 +46,11 @@ const MaintenanceList = () => {
       const params = {};
       if (vehicleId) params.vehicleId = vehicleId;
       if (month) params.month = month;
-
       const [maintenanceResponse, vehiclesResponse] = await Promise.all([
         axiosConfig.get(API_ENDPOINTS.GET_ALL_MAINTENANCE, { params }),
         axiosConfig.get(API_ENDPOINTS.GET_ALL_OWN_VEHICLES),
       ]);
-
       if (maintenanceResponse.status === 200) {
-        // Add vehicle registration number to each maintenance record
         const maintenanceWithVehicle = maintenanceResponse.data.map((m) => ({
           ...m,
           vehicleRegNumber:
@@ -62,7 +60,6 @@ const MaintenanceList = () => {
         setMaintenanceData(maintenanceWithVehicle);
         setFilteredMaintenance(maintenanceWithVehicle);
       }
-
       if (vehiclesResponse.status === 200) {
         setVehicleData(vehiclesResponse.data);
       }
@@ -95,6 +92,10 @@ const MaintenanceList = () => {
   }, [searchTerm, maintenanceData]);
 
   const handleApplyFilter = () => {
+    if (filterMonth && !/^\d{4}-\d{2}$/.test(filterMonth)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
     fetchMaintenanceDetails(filterVehicleId, filterMonth);
   };
 
@@ -110,7 +111,6 @@ const MaintenanceList = () => {
       const params = {};
       if (filterVehicleId) params.vehicleId = filterVehicleId;
       if (filterMonth) params.month = filterMonth;
-
       const response = await axiosConfig.get(
         API_ENDPOINTS.DOWNLOAD_MAINTENANCE_EXCEL,
         {
@@ -118,12 +118,9 @@ const MaintenanceList = () => {
           responseType: "blob",
         }
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-
-      // Generate dynamic filename
       let filename = "maintenance_report";
       if (filterVehicleId) {
         const vehicle = vehicleData.find((v) => v.id == filterVehicleId);
@@ -135,7 +132,6 @@ const MaintenanceList = () => {
         filename += `_${filterMonth}`;
       }
       filename += ".xlsx";
-
       link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
@@ -161,7 +157,6 @@ const MaintenanceList = () => {
           maintenanceData
         );
       }
-
       if (response.status === 200 || response.status === 201) {
         toast.success(
           `Maintenance record ${isEditing ? "updated" : "added"} successfully!`
@@ -185,14 +180,8 @@ const MaintenanceList = () => {
     setOpenEditMaintenanceModal(true);
   };
 
-  const handleDeleteMaintenance = async (maintenanceToDelete) => {
-    if (
-      !window.confirm(
-        `Delete maintenance record for "${maintenanceToDelete.vehicleRegNumber}"? This action cannot be undone.`
-      )
-    )
-      return;
-
+  // Helper function for actual deletion
+  const performDelete = async (maintenanceToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_MAINTENANCE(maintenanceToDelete.id)
@@ -205,6 +194,99 @@ const MaintenanceList = () => {
       );
     }
   };
+
+  const handleDeleteMaintenance = async (maintenanceToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete maintenance record for "
+                  {maintenanceToDelete.vehicleRegNumber}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(maintenanceToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
+
+  // Function to get current month in YYYY-MM format
+  const getCurrentMonth = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  // Format month as YYYY/MM for display
+  const formatDisplayMonth = (monthStr) => {
+    if (!monthStr) return "";
+    return monthStr.replace("-", "/");
+  };
+
+  // Calculate current month totals
+  const calculateCurrentMonthTotals = () => {
+    const currentMonth = getCurrentMonth();
+    let currentMonthData = filteredMaintenance;
+    if (!filterMonth) {
+      currentMonthData = filteredMaintenance.filter((item) => {
+        if (!item.date) return false;
+        const itemMonth = item.date.slice(0, 7);
+        return itemMonth === currentMonth;
+      });
+    }
+    const currentMonthTotalCost = currentMonthData
+      .reduce((sum, item) => sum + (parseFloat(item.totalPrice) || 0), 0)
+      .toFixed(2);
+    return {
+      totalCost: currentMonthTotalCost,
+      displayMonth: formatDisplayMonth(filterMonth || currentMonth),
+    };
+  };
+
+  const currentMonthTotals = calculateCurrentMonthTotals();
 
   return (
     <Dashboard activeMenu="Maintenance">
@@ -220,7 +302,6 @@ const MaintenanceList = () => {
               Manage vehicle maintenance records
             </p>
           </div>
-
           <div className="flex gap-3 w-full lg:w-auto">
             <button
               onClick={() => setOpenAddMaintenanceModal(true)}
@@ -229,7 +310,6 @@ const MaintenanceList = () => {
               <Plus size={18} />
               <span className="hidden sm:inline">Add Maintenance</span>
             </button>
-
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2.5 rounded-lg cursor-pointer hover:bg-gray-50 transition-all duration-300"
@@ -239,7 +319,6 @@ const MaintenanceList = () => {
             </button>
           </div>
         </div>
-
         {/* Search Bar */}
         <div className="relative mb-6">
           <Search
@@ -254,7 +333,6 @@ const MaintenanceList = () => {
             className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
-
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -271,9 +349,7 @@ const MaintenanceList = () => {
                 Clear All
               </button>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              {/* Vehicle Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Truck className="w-4 h-4" />
@@ -292,22 +368,19 @@ const MaintenanceList = () => {
                   ))}
                 </select>
               </div>
-
-              {/* Month Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Select Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
-
-              {/* Action Buttons */}
               <div className="flex flex-col justify-end space-y-2">
                 <label className="text-sm font-medium text-gray-700 opacity-0">
                   Actions
@@ -319,7 +392,6 @@ const MaintenanceList = () => {
                   >
                     Apply Filters
                   </button>
-
                   <button
                     onClick={handleDownloadExcel}
                     className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
@@ -331,8 +403,6 @@ const MaintenanceList = () => {
                 </div>
               </div>
             </div>
-
-            {/* Active Filters Display */}
             {(filterVehicleId || filterMonth) && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <p className="text-sm text-gray-600 mb-2">Active Filters:</p>
@@ -368,8 +438,7 @@ const MaintenanceList = () => {
             )}
           </div>
         )}
-
-        {/* Stats Summary - Changed from 4 cards to 2 cards */}
+        {/* Stats Summary - Now matches TireMaintenanceList style */}
         {filteredMaintenance.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {/* Total Records Card */}
@@ -380,39 +449,44 @@ const MaintenanceList = () => {
                   <p className="text-2xl font-bold text-gray-800">
                     {filteredMaintenance.length}
                   </p>
+                  {/* <p className="text-xs text-gray-500 mt-1">
+                    {currentMonthTotals.displayMonth}
+                  </p> */}
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                   <Wrench className="w-5 h-5 text-blue-600" />
                 </div>
               </div>
             </div>
-
-            {/* Total Cost Card */}
+            {/* Total Cost Card - Current/Selected Month Only */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Cost</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {filteredMaintenance
-                      .reduce(
-                        (sum, item) => sum + (parseFloat(item.totalPrice) || 0),
-                        0
-                      )
-                      .toFixed(2)}
+                    LKR{" "}
+                    {parseFloat(currentMonthTotals.totalCost).toLocaleString(
+                      "en-IN",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    For {currentMonthTotals.displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <span className="text-purple-600 font-bold">$</span>
+                  <DollarSign className="w-5 h-5 text-purple-600" />
                 </div>
               </div>
             </div>
-
-            {/* Empty space to maintain layout - you can remove these two empty divs if you want */}
+            {/* Empty divs to maintain layout */}
             <div className="hidden md:block"></div>
             <div className="hidden md:block"></div>
           </div>
         )}
-
         {/* Quick Actions Bar */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -427,7 +501,6 @@ const MaintenanceList = () => {
               )}
             </p>
           </div>
-
           <div className="flex items-center gap-2">
             {!showFilters && (
               <button
@@ -440,7 +513,6 @@ const MaintenanceList = () => {
             )}
           </div>
         </div>
-
         {/* Maintenance Table */}
         <MaintenanceTable
           maintenanceRecords={filteredMaintenance}
@@ -449,7 +521,6 @@ const MaintenanceList = () => {
           loading={loading}
           isAdmin={isAdmin}
         />
-
         {/* Add Maintenance Modal */}
         <Modal
           isOpen={openAddMaintenanceModal}
@@ -461,7 +532,6 @@ const MaintenanceList = () => {
             vehicles={vehicleData}
           />
         </Modal>
-
         {/* Edit Maintenance Modal */}
         <Modal
           isOpen={openEditMaintenanceModal}
@@ -482,5 +552,4 @@ const MaintenanceList = () => {
     </Dashboard>
   );
 };
-
 export default MaintenanceList;

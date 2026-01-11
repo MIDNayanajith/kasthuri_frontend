@@ -14,6 +14,7 @@ import {
   Clock,
   ChevronLeft,
   ChevronRight,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import AttendanceTable from "./AttendanceTable";
 import axiosConfig from "../../../Utill/axiosConfig";
@@ -22,6 +23,7 @@ import toast from "react-hot-toast";
 import Modal from "../../../components/Admin/Modal";
 import AttendanceForm from "./AttendanceForm";
 import { AppContext } from "../../../context/AppContext";
+
 const AttendanceList = () => {
   useUser();
   const { user } = useContext(AppContext);
@@ -41,6 +43,7 @@ const AttendanceList = () => {
   const [selectedAttendance, setSelectedAttendance] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
   const fetchAttendanceDetails = async (
     recipientType = null,
     recipientId = null,
@@ -128,6 +131,7 @@ const AttendanceList = () => {
   useEffect(() => {
     fetchAttendanceDetails();
   }, []);
+
   useEffect(() => {
     if (searchTerm) {
       const filtered = attendanceData.filter(
@@ -143,6 +147,7 @@ const AttendanceList = () => {
       setFilteredAttendance(attendanceData);
     }
   }, [searchTerm, attendanceData]);
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredAttendance.slice(
@@ -150,26 +155,35 @@ const AttendanceList = () => {
     indexOfLastItem
   );
   const totalPages = Math.ceil(filteredAttendance.length / itemsPerPage);
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
+
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
+
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
+
   const handleApplyFilter = () => {
+    if (filterMonth && !/^\d{4}-\d{2}$/.test(filterMonth)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
     fetchAttendanceDetails(
       filterRecipientType,
       filterRecipientId ? parseInt(filterRecipientId) : null,
       filterMonth
     );
   };
+
   const handleResetFilter = () => {
     setFilterRecipientType("");
     setFilterRecipientId("");
@@ -177,6 +191,7 @@ const AttendanceList = () => {
     setSearchTerm("");
     fetchAttendanceDetails();
   };
+
   const handleDownloadExcel = async () => {
     try {
       const params = {};
@@ -218,6 +233,7 @@ const AttendanceList = () => {
       toast.error("Failed to download Excel");
     }
   };
+
   const handleAddAttendance = async (attendanceData, isEditing = false) => {
     try {
       let response;
@@ -253,15 +269,14 @@ const AttendanceList = () => {
       throw error;
     }
   };
+
   const handleEditAttendance = (attendanceToEdit) => {
     setSelectedAttendance(attendanceToEdit);
     setOpenEditAttendanceModal(true);
   };
-  const handleDeleteAttendance = async (attendanceToDelete) => {
-    if (
-      !window.confirm(`Delete attendance record? This action cannot be undone.`)
-    )
-      return;
+
+  // Helper function for actual deletion
+  const performDelete = async (attendanceToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_ATTENDANCE(attendanceToDelete.id)
@@ -278,6 +293,65 @@ const AttendanceList = () => {
       );
     }
   };
+
+  const handleDeleteAttendance = async (attendanceToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete attendance record for "
+                  {attendanceToDelete.recipientName}" on{" "}
+                  {attendanceToDelete.attendanceDate}?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(attendanceToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
+
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
@@ -297,11 +371,13 @@ const AttendanceList = () => {
     }
     return pageNumbers;
   };
+
   const recipientOptions =
     filterRecipientType === "Driver"
       ? driverData.map((d) => ({ value: d.id, label: d.name }))
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
+
   // Calculate stats
   const today = new Date().toISOString().split("T")[0];
   const todaysAttendance = filteredAttendance.filter(
@@ -313,13 +389,14 @@ const AttendanceList = () => {
   const absentCount = todaysAttendance.filter(
     (a) => a.status === "Absent"
   ).length;
-  const leaveCount = filteredAttendance.filter(
+  const leaveCount = todaysAttendance.filter(
     (a) => a.status === "Leave"
   ).length;
   const totalHours = filteredAttendance.reduce(
     (sum, a) => sum + (parseFloat(a.totalHours) || 0),
     0
   );
+
   return (
     <Dashboard activeMenu="Attendance">
       <div className="my-5 mx-auto">
@@ -421,10 +498,11 @@ const AttendanceList = () => {
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
@@ -527,6 +605,7 @@ const AttendanceList = () => {
                   <p className="text-2xl font-bold text-green-600">
                     {presentCount}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">Today</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                   <CalendarCheck className="w-5 h-5 text-green-600" />
@@ -541,12 +620,15 @@ const AttendanceList = () => {
                   <p className="text-2xl font-bold text-red-600">
                     {absentCount}
                   </p>
+                  <p className="text-xs text-gray-500 mt-1">Today</p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
                   <CalendarCheck className="w-5 h-5 text-red-600" />
                 </div>
               </div>
             </div>
+            {/* Empty space to maintain layout */}
+            <div className="hidden md:block"></div>
           </div>
         )}
         {/* Quick Actions Bar */}

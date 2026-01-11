@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Calendar,
   User,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import PaymentsTable from "./PaymentsTable";
 import axiosConfig from "../../../../Utill/axiosConfig";
@@ -20,6 +21,7 @@ import { API_ENDPOINTS } from "../../../../Utill/apiEndPoints";
 import toast from "react-hot-toast";
 import Modal from "../../../../components/Admin/Modal";
 import PaymentForm from "./PaymentForm";
+
 const PaymentsList = () => {
   useUser();
   const [loading, setLoading] = useState(false);
@@ -37,6 +39,7 @@ const PaymentsList = () => {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+
   const fetchPaymentsDetails = async (
     recipientType = null,
     recipientId = null,
@@ -83,9 +86,11 @@ const PaymentsList = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchPaymentsDetails();
   }, []);
+
   useEffect(() => {
     if (searchTerm) {
       const filtered = paymentsData.filter(
@@ -101,6 +106,7 @@ const PaymentsList = () => {
       setFilteredPayments(paymentsData);
     }
   }, [searchTerm, paymentsData]);
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredPayments.slice(
@@ -108,26 +114,35 @@ const PaymentsList = () => {
     indexOfLastItem
   );
   const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
+
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
+
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
     }
   };
+
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(currentPage - 1);
     }
   };
+
   const handleApplyFilter = () => {
+    if (filterMonth && !/^\d{4}-\d{2}$/.test(filterMonth)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
     fetchPaymentsDetails(
       filterRecipientType,
       filterRecipientId ? parseInt(filterRecipientId) : null,
       filterMonth
     );
   };
+
   const handleResetFilter = () => {
     setFilterRecipientType("");
     setFilterRecipientId("");
@@ -135,6 +150,7 @@ const PaymentsList = () => {
     setSearchTerm("");
     fetchPaymentsDetails();
   };
+
   const handleDownloadExcel = async () => {
     try {
       const params = {};
@@ -161,6 +177,7 @@ const PaymentsList = () => {
       toast.error("Failed to download Excel");
     }
   };
+
   const handleAddPayment = async (paymentData, isEditing = false) => {
     try {
       let response;
@@ -196,13 +213,14 @@ const PaymentsList = () => {
       throw error;
     }
   };
+
   const handleEditPayment = (paymentToEdit) => {
     setSelectedPayment(paymentToEdit);
     setOpenEditPaymentModal(true);
   };
-  const handleDeletePayment = async (paymentToDelete) => {
-    if (!window.confirm(`Delete payment record? This action cannot be undone.`))
-      return;
+
+  // Helper function for actual deletion
+  const performDelete = async (paymentToDelete) => {
     try {
       await axiosConfig.delete(
         API_ENDPOINTS.DELETE_PAYMENT(paymentToDelete.id)
@@ -215,6 +233,63 @@ const PaymentsList = () => {
       );
     }
   };
+
+  const handleDeletePayment = async (paymentToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete payment record for "{paymentToDelete.recipientName}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(paymentToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
+
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
@@ -234,24 +309,49 @@ const PaymentsList = () => {
     }
     return pageNumbers;
   };
+
   const recipientOptions =
     filterRecipientType === "Driver"
       ? driverData.map((d) => ({ value: d.id, label: d.name }))
       : userData.map((u) => ({ value: u.id, label: u.username }));
   recipientOptions.unshift({ value: "", label: "All Recipients" });
-  // Calculate stats
-  let paymentsToSum = filteredPayments;
-  if (!filterMonth) {
+
+  // Function to get current month in YYYY-MM format
+  const getCurrentMonth = () => {
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    paymentsToSum = filteredPayments.filter(
-      (p) => p.periodYear === currentYear && p.periodMonth === currentMonth
-    );
-  }
-  const totalAmount = paymentsToSum
-    .reduce((sum, p) => sum + (p.netPay || 0), 0)
-    .toFixed(2);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    return `${year}-${month}`;
+  };
+
+  // Format month as YYYY/MM for display
+  const formatDisplayMonth = (monthStr) => {
+    if (!monthStr) return "";
+    return monthStr.replace("-", "/");
+  };
+
+  // Calculate current month totals (for Total Payments card)
+  const calculateCurrentMonthTotals = () => {
+    const currentMonth = getCurrentMonth();
+    let currentMonthData = filteredPayments;
+    if (!filterMonth) {
+      currentMonthData = filteredPayments.filter((item) => {
+        if (!item.createdAt) return false;
+        const itemMonth = item.createdAt.slice(0, 7); // Get YYYY-MM from createdAt
+        return itemMonth === currentMonth;
+      });
+    }
+    const currentMonthTotalAmount = currentMonthData
+      .reduce((sum, item) => sum + (parseFloat(item.netPay) || 0), 0)
+      .toFixed(2);
+    return {
+      totalAmount: currentMonthTotalAmount,
+      displayMonth: formatDisplayMonth(filterMonth || currentMonth),
+    };
+  };
+
+  const currentMonthTotals = calculateCurrentMonthTotals();
+
   return (
     <Dashboard activeMenu="Finance">
       <div className="my-5 mx-auto">
@@ -281,6 +381,7 @@ const PaymentsList = () => {
             </button>
           </div>
         </div>
+
         {/* Search Bar */}
         <div className="relative mb-6">
           <Search
@@ -295,6 +396,7 @@ const PaymentsList = () => {
             className="pl-10 pr-4 py-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
           />
         </div>
+
         {/* Filter Panel */}
         {showFilters && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
@@ -311,7 +413,7 @@ const PaymentsList = () => {
                 Clear All
               </button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {/* Recipient Type Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -328,6 +430,7 @@ const PaymentsList = () => {
                   <option value="User">User</option>
                 </select>
               </div>
+
               {/* Recipient Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
@@ -347,36 +450,46 @@ const PaymentsList = () => {
                   ))}
                 </select>
               </div>
+
               {/* Month Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col justify-end space-y-2">
+                <label className="text-sm font-medium text-gray-700 opacity-0">
+                  Actions
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleApplyFilter}
+                    className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md"
+                  >
+                    Apply Filters
+                  </button>
+                  <button
+                    onClick={handleDownloadExcel}
+                    className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
+                    title="Download Excel Report"
+                  >
+                    <Download size={18} />
+                    <span className="hidden sm:inline">Excel</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleApplyFilter}
-                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4F46E5] to-[#7C73E6] text-white px-4 py-2.5 rounded-lg cursor-pointer hover:shadow-lg hover:from-[#3E36D5] hover:to-[#6B63D6] transition-all duration-300 shadow-md"
-              >
-                Apply Filters
-              </button>
-              <button
-                onClick={handleDownloadExcel}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 shadow-md"
-                title="Download Excel Report"
-              >
-                <Download size={18} />
-                <span className="hidden sm:inline">Excel</span>
-              </button>
-            </div>
+
             {/* Active Filters Display */}
             {(filterRecipientType || filterRecipientId || filterMonth) && (
               <div className="mt-4 pt-4 border-t border-gray-100">
@@ -426,7 +539,8 @@ const PaymentsList = () => {
             )}
           </div>
         )}
-        {/* Stats Summary */}
+
+        {/* Stats Summary - Updated to match MaintenanceList style */}
         {filteredPayments.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {/* Total Records Card */}
@@ -443,13 +557,24 @@ const PaymentsList = () => {
                 </div>
               </div>
             </div>
-            {/* Total Amount Card */}
+
+            {/* Total Payments Card - CURRENT/SELECTED MONTH ONLY */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Payments</p>
                   <p className="text-2xl font-bold text-gray-800">
-                    {totalAmount}
+                    LKR{" "}
+                    {parseFloat(currentMonthTotals.totalAmount).toLocaleString(
+                      "en-IN",
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    For {currentMonthTotals.displayMonth}
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
@@ -457,11 +582,13 @@ const PaymentsList = () => {
                 </div>
               </div>
             </div>
+
             {/* Empty space to maintain layout */}
             <div className="hidden md:block"></div>
             <div className="hidden md:block"></div>
           </div>
         )}
+
         {/* Quick Actions Bar */}
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -486,6 +613,7 @@ const PaymentsList = () => {
             )}
           </div>
         </div>
+
         {/* Payments Table */}
         <PaymentsTable
           paymentsRecords={currentItems}
@@ -493,6 +621,7 @@ const PaymentsList = () => {
           onDeletePayment={handleDeletePayment}
           loading={loading}
         />
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-6 border-t border-gray-200 gap-4">
@@ -532,6 +661,7 @@ const PaymentsList = () => {
             </div>
           </div>
         )}
+
         {/* Add Payment Modal */}
         <Modal
           isOpen={openAddPaymentModal}
@@ -544,6 +674,7 @@ const PaymentsList = () => {
             users={userData}
           />
         </Modal>
+
         {/* Edit Payment Modal */}
         <Modal
           isOpen={openEditPaymentModal}
@@ -565,4 +696,5 @@ const PaymentsList = () => {
     </Dashboard>
   );
 };
+
 export default PaymentsList;

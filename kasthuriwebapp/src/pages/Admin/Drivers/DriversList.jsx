@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import Dashboard from "../../../components/Admin/Dashboard";
 import { useUser } from "../../../hooks/useUser";
-import { Plus, Users, Search, Car } from "lucide-react";
+import { Plus, Users, Search, Car, Trash2 } from "lucide-react"; // Added Trash2
 import DriversTable from "./DriversTable";
 import axiosConfig from "../../../Utill/axiosConfig";
 import { API_ENDPOINTS } from "../../../Utill/apiEndPoints";
@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 import Modal from "../../../components/Admin/Modal";
 import DriverForm from "./DriverForm";
 import { AppContext } from "../../../context/AppContext";
+
 const DriverList = () => {
   useUser();
   const { user } = useContext(AppContext);
@@ -21,6 +22,7 @@ const DriverList = () => {
   const [openAddDriverModal, setOpenAddDriverModal] = useState(false);
   const [openEditDriverModal, setOpenEditDriverModal] = useState(false);
   const [selectedDriver, setSelectedDriver] = useState(null);
+
   const fetchDriverDetails = async () => {
     if (loading) return;
     setLoading(true);
@@ -36,9 +38,11 @@ const DriverList = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchDriverDetails();
   }, []);
+
   useEffect(() => {
     if (searchTerm) {
       const filtered = driverData.filter(
@@ -55,6 +59,7 @@ const DriverList = () => {
       setFilteredDrivers(driverData);
     }
   }, [searchTerm, driverData]);
+
   const handleAddDriver = async (driverData, isEditing = false) => {
     try {
       let response;
@@ -66,6 +71,7 @@ const DriverList = () => {
       } else {
         response = await axiosConfig.post(API_ENDPOINTS.ADD_DRIVER, driverData);
       }
+
       if (response.status === 200 || response.status === 201) {
         toast.success(
           `Driver ${isEditing ? "updated" : "added"} successfully!`
@@ -83,17 +89,14 @@ const DriverList = () => {
       throw error; // Re-throw to be caught in the form
     }
   };
+
   const handleEditDriver = (driverToEdit) => {
     setSelectedDriver(driverToEdit);
     setOpenEditDriverModal(true);
   };
-  const handleDeleteDriver = async (driverToDelete) => {
-    if (
-      !window.confirm(
-        `Delete driver "${driverToDelete.name}"? This action cannot be undone.`
-      )
-    )
-      return;
+
+  // Helper function for actual deletion
+  const performDelete = async (driverToDelete) => {
     try {
       await axiosConfig.delete(API_ENDPOINTS.DELETE_DRIVER(driverToDelete.id));
       toast.success("Driver deleted successfully!");
@@ -102,6 +105,63 @@ const DriverList = () => {
       toast.error(error.response?.data?.message || "Failed to delete driver.");
     }
   };
+
+  const handleDeleteDriver = async (driverToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete driver "{driverToDelete.name}"?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This action cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(driverToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
+
   return (
     <Dashboard activeMenu="Drivers">
       <div className="my-5 mx-auto">
@@ -138,6 +198,7 @@ const DriverList = () => {
             </button>
           </div>
         </div>
+
         <DriversTable
           drivers={filteredDrivers}
           onEditDriver={handleEditDriver}
@@ -145,6 +206,7 @@ const DriverList = () => {
           loading={loading}
           isAdmin={isAdmin}
         />
+
         {/* Add Driver Modal */}
         <Modal
           isOpen={openAddDriverModal}
@@ -153,6 +215,7 @@ const DriverList = () => {
         >
           <DriverForm onAddDriver={handleAddDriver} />
         </Modal>
+
         {/* Edit Driver Modal */}
         <Modal
           isOpen={openEditDriverModal}
@@ -172,4 +235,5 @@ const DriverList = () => {
     </Dashboard>
   );
 };
+
 export default DriverList;

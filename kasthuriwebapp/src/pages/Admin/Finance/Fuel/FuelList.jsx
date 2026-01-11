@@ -14,6 +14,7 @@ import {
   Droplets,
   ChevronLeft,
   ChevronRight,
+  Trash2, // Added Trash2 icon
 } from "lucide-react";
 import FuelTable from "./FuelTable";
 import axiosConfig from "../../../../Utill/axiosConfig";
@@ -51,24 +52,20 @@ const FuelList = () => {
       const params = {};
       if (vehicleId) params.vehicleId = vehicleId;
       if (month) params.month = month;
-
       const [fuelResponse, vehiclesResponse, transportsResponse] =
         await Promise.all([
           axiosConfig.get(API_ENDPOINTS.GET_ALL_FUELS, { params }),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_OWN_VEHICLES),
           axiosConfig.get(API_ENDPOINTS.GET_ALL_TRANSPORTS),
         ]);
-
       if (fuelResponse.status === 200) {
         setFuelData(fuelResponse.data);
         setFilteredFuel(fuelResponse.data);
         setCurrentPage(1);
       }
-
       if (vehiclesResponse.status === 200) {
         setOwnVehicleData(vehiclesResponse.data);
       }
-
       if (transportsResponse.status === 200) {
         setTransportData(transportsResponse.data);
       }
@@ -126,6 +123,10 @@ const FuelList = () => {
   };
 
   const handleApplyFilter = () => {
+    if (filterMonth && !/^\d{4}-\d{2}$/.test(filterMonth)) {
+      toast.error("Invalid month format. Use YYYY-MM");
+      return;
+    }
     fetchFuelDetails(filterVehicleId || null, filterMonth || null);
   };
 
@@ -146,7 +147,6 @@ const FuelList = () => {
         }
       }
       if (filterMonth) params.month = filterMonth;
-
       const response = await axiosConfig.get(
         API_ENDPOINTS.DOWNLOAD_FUEL_EXCEL,
         {
@@ -154,11 +154,9 @@ const FuelList = () => {
           responseType: "blob",
         }
       );
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-
       let filename = "fuel_report";
       if (filterVehicleId) {
         const vehicle = ownVehicleData.find((v) => v.id == filterVehicleId);
@@ -170,7 +168,6 @@ const FuelList = () => {
         filename += `_${filterMonth}`;
       }
       filename += ".xlsx";
-
       link.setAttribute("download", filename);
       document.body.appendChild(link);
       link.click();
@@ -193,7 +190,6 @@ const FuelList = () => {
       } else {
         response = await axiosConfig.post(API_ENDPOINTS.ADD_FUEL, fuelData);
       }
-
       if (response.status === 200 || response.status === 201) {
         toast.success(
           `Fuel record ${isEditing ? "updated" : "added"} successfully!`
@@ -217,17 +213,8 @@ const FuelList = () => {
     setOpenEditFuelModal(true);
   };
 
-  const handleDeleteFuel = async (fuelToDelete) => {
-    if (
-      !window.confirm(
-        `Delete fuel record for "${
-          fuelToDelete.vehicleRegNumber
-        }" on ${new Date(
-          fuelToDelete.fuelDate
-        ).toLocaleDateString()}? This action cannot be undone.`
-      )
-    )
-      return;
+  // Helper function for actual deletion
+  const performDelete = async (fuelToDelete) => {
     try {
       await axiosConfig.delete(API_ENDPOINTS.DELETE_FUEL(fuelToDelete.id));
       toast.success("Fuel record deleted successfully!");
@@ -239,12 +226,77 @@ const FuelList = () => {
     }
   };
 
+  const handleDeleteFuel = async (fuelToDelete) => {
+    // Show toast confirmation instead of window.confirm
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-red-500`}
+        >
+          <div className="w-full p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-gray-900">
+                  Confirm Delete
+                </p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Delete fuel record for "{fuelToDelete.vehicleRegNumber}" on{" "}
+                  {new Date(fuelToDelete.fuelDate).toLocaleDateString()}?
+                  <span className="block text-red-600 font-medium mt-1">
+                    This cannot be undone.
+                  </span>
+                </p>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300"
+                    onClick={() => {
+                      toast.dismiss(t.id);
+                      performDelete(fuelToDelete);
+                    }}
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-300"
+                    onClick={() => toast.dismiss(t.id)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: Infinity, // Don't auto-dismiss
+      }
+    );
+  };
+
   // Calculate stats for current month or filtered month
   const getStats = () => {
+    const totalRecords = filteredFuel.length;
     let fuelsToSum = filteredFuel;
-
-    // Filter by month if specified
+    let period;
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const currentMonthStr = `${currentYear}/${String(currentMonth).padStart(
+      2,
+      "0"
+    )}`;
     if (filterMonth) {
+      period = filterMonth.replace("-", "/");
       const [year, month] = filterMonth.split("-").map(Number);
       fuelsToSum = filteredFuel.filter((fuel) => {
         const fuelDate = new Date(fuel.fuelDate);
@@ -253,10 +305,7 @@ const FuelList = () => {
         );
       });
     } else {
-      // Default to current month
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
+      period = currentMonthStr;
       fuelsToSum = filteredFuel.filter((fuel) => {
         const fuelDate = new Date(fuel.fuelDate);
         return (
@@ -266,23 +315,17 @@ const FuelList = () => {
         );
       });
     }
-
-    const totalRecords = fuelsToSum.length;
     const totalCost = fuelsToSum
       .reduce((sum, item) => sum + (parseFloat(item.totalCost) || 0), 0)
       .toFixed(2);
     const totalLiters = fuelsToSum
       .reduce((sum, item) => sum + (parseFloat(item.fuelQuantity) || 0), 0)
       .toFixed(2);
-    const avgUnitPrice =
-      totalLiters > 0 ? (totalCost / totalLiters).toFixed(2) : "0.00";
-
     return {
       totalRecords,
       totalCost,
       totalLiters,
-      avgUnitPrice,
-      period: filterMonth ? filterMonth : "Current Month",
+      period,
     };
   };
 
@@ -291,7 +334,6 @@ const FuelList = () => {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxPagesToShow = 5;
-
     if (totalPages <= maxPagesToShow) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
@@ -299,16 +341,13 @@ const FuelList = () => {
     } else {
       let startPage = Math.max(1, currentPage - 2);
       let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-
       if (endPage - startPage + 1 < maxPagesToShow) {
         startPage = Math.max(1, endPage - maxPagesToShow + 1);
       }
-
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
       }
     }
-
     return pageNumbers;
   };
 
@@ -400,19 +439,22 @@ const FuelList = () => {
                   ))}
                 </select>
               </div>
+
               {/* Month Filter */}
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
                   <Calendar className="w-4 h-4" />
-                  Select Month
+                  Select Month/Year
                 </label>
                 <input
-                  type="month"
+                  type="text"
+                  placeholder="YYYY-MM"
                   value={filterMonth}
                   onChange={(e) => setFilterMonth(e.target.value)}
                   className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 />
               </div>
+
               {/* Action Buttons */}
               <div className="flex flex-col justify-end space-y-2">
                 <label className="text-sm font-medium text-gray-700 opacity-0">
@@ -436,6 +478,7 @@ const FuelList = () => {
                 </div>
               </div>
             </div>
+
             {/* Active Filters Display */}
             {(filterVehicleId || filterMonth) && (
               <div className="mt-4 pt-4 border-t border-gray-100">
@@ -483,13 +526,13 @@ const FuelList = () => {
                 <p className="text-2xl font-bold text-gray-800">
                   {stats.totalRecords}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{stats.period}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
                 <Fuel className="w-5 h-5 text-blue-600" />
               </div>
             </div>
           </div>
+
           {/* Total Liters Card */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -498,13 +541,14 @@ const FuelList = () => {
                 <p className="text-2xl font-bold text-gray-800">
                   {stats.totalLiters} L
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{stats.period}</p>
+                <p className="text-xs text-gray-500 mt-1">For {stats.period}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
                 <Droplets className="w-5 h-5 text-purple-600" />
               </div>
             </div>
           </div>
+
           {/* Total Cost Card */}
           <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
             <div className="flex items-center justify-between">
@@ -513,28 +557,16 @@ const FuelList = () => {
                 <p className="text-2xl font-bold text-green-600">
                   LKR {stats.totalCost}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{stats.period}</p>
+                <p className="text-xs text-gray-500 mt-1">For {stats.period}</p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </div>
-          {/* Average Unit Price Card */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg. Unit Price</p>
-                <p className="text-2xl font-bold text-amber-600">
-                  LKR {stats.avgUnitPrice}/L
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Per liter average</p>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-amber-600" />
-              </div>
-            </div>
-          </div>
+
+          {/* Empty space to maintain layout */}
+          <div className="hidden md:block"></div>
         </div>
 
         {/* Quick Actions Bar */}
@@ -596,7 +628,6 @@ const FuelList = () => {
               >
                 <ChevronLeft size={16} />
               </button>
-
               {getPageNumbers().map((page) => (
                 <button
                   key={page}
@@ -610,7 +641,6 @@ const FuelList = () => {
                   {page}
                 </button>
               ))}
-
               <button
                 onClick={handleNextPage}
                 disabled={currentPage === totalPages}
@@ -620,7 +650,6 @@ const FuelList = () => {
                 <ChevronRight size={16} />
               </button>
             </div>
-
             <div className="flex items-center text-sm text-gray-600">
               <span>Items per page:</span>
               <span className="ml-2 font-medium">{itemsPerPage}</span>

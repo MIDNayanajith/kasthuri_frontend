@@ -78,6 +78,7 @@ export const API_ENDPOINTS = {
   DELETE_ADVANCE: (id) => `/advances/${id}`,
   DOWNLOAD_ADVANCES_EXCEL: "/excel/download/advances",
 
+  //Fuel endpoints
   GET_ALL_FUELS: "/fuel",
   ADD_FUEL: "/fuel",
   UPDATE_FUEL: (id) => `/fuel/${id}`,
@@ -85,6 +86,9 @@ export const API_ENDPOINTS = {
   GET_FUELS_BY_REG_NUMBER: "/fuel/by-regnumber",
   GET_TOTAL_FUEL_COST: "/fuel/total-cost",
   DOWNLOAD_FUEL_EXCEL: "/excel/download/fuel",
+
+  //dashboard endpoint
+  GET_DASHBOARD_DATA: "/dashboard",
 
   UPLOAD_IMAGE: `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
 };
